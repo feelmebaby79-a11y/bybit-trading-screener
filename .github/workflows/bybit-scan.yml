@@ -1,0 +1,54 @@
+name: Bybit HTF-LTF Scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "50 23 * * *"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Bybit screener
+        run: |
+          python bybit_htf_ltf_screener.py \
+            --max-symbols 400 \
+            --min-turnover 3000000 \
+            --top 20 \
+            --output scan_results.csv
+
+      - name: Save latest scan results
+        run: |
+          mkdir -p latest
+
+          cp scan_results.csv latest/scan_results.csv
+          cp scan_results_long.csv latest/scan_results_long.csv
+          cp scan_results_short.csv latest/scan_results_short.csv
+
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > latest/updated_at_utc.txt
+
+      - name: Commit scan results
+        run: |
+          git config user.name "bybit-screener-bot"
+          git config user.email "bybit-screener-bot@users.noreply.github.com"
+
+          git add latest/
+
+          git commit -m "Update Bybit HTF-LTF scan" || exit 0
+          git push
