@@ -192,8 +192,61 @@ export default {
           shorts,
         });
       }
+    // ==================================================
+    // Run latest GitHub Actions screener on demand
+    // /run-scan
+    // ==================================================
 
-      // =================================================
+    if (incoming.pathname === "/run-scan") {
+      if (!env.GITHUB_TOKEN) {
+        return json(
+          {
+            ok: false,
+            error: "GITHUB_TOKEN secret is missing",
+          },
+          500
+        );
+      }
+
+      const workflowUrl =
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}` +
+        `/actions/workflows/bybit-scan.yml/dispatches`;
+
+      const response = await fetch(workflowUrl, {
+        method: "POST",
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+          "User-Agent": "bybit-trading-screener",
+        },
+        body: JSON.stringify({
+          ref: GITHUB_BRANCH,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+
+        return json(
+          {
+            ok: false,
+            status: response.status,
+            error: errorText,
+          },
+          response.status
+        );
+      }
+
+      return json({
+        ok: true,
+        status: "started",
+        message: "Latest Bybit HTF/LTF scan started",
+        repository: `${GITHUB_OWNER}/${GITHUB_REPO}`,
+        workflow: "bybit-scan.yml",
+        startedAt: new Date().toISOString(),
+      });
+    }
       // 2. Individual coin 5-timeframe chart data
       //
       // /?symbol=BTCUSDT
