@@ -99,18 +99,26 @@ def api(path, params, cfg, retries=4):
         try:
 
             r = S.get(
+    url,
+    params=params,
+    timeout=cfg.timeout,
+)
 
-                url,
+# Debug HTTP errors so we can identify
+# whether Cloudflare or Bybit is returning the 403.
+if not r.ok:
+    print("\n========== HTTP DEBUG ==========")
+    print("STATUS :", r.status_code)
+    print("URL    :", r.url)
+    print("SERVER :", r.headers.get("server"))
+    print("CF-RAY :", r.headers.get("cf-ray"))
+    print("TYPE   :", r.headers.get("content-type"))
+    print("BODY   :", r.text[:2000])
+    print("================================\n")
 
-                params=params,
+r.raise_for_status()
 
-                timeout=cfg.timeout,
-
-            )
-
-            r.raise_for_status()
-
-            j = r.json()
+j = r.json()
 
             if j.get("retCode") == 0:
 
