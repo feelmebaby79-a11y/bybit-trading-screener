@@ -1,19 +1,8 @@
 const BYBIT_BASE = "https://api.bybit.com";
 
-// ======================================================
-// GitHub repository
-// ======================================================
-
 const GITHUB_OWNER = "feelmebaby79-a11y";
-
-const GITHUB_REPO =
-  "bybit-trading-screener";
-
+const GITHUB_REPO = "bybit-trading-screener";
 const GITHUB_BRANCH = "main";
-
-// ======================================================
-// Allowed Bybit proxy endpoints
-// ======================================================
 
 const ALLOWED_PATHS = new Set([
   "/v5/market/time",
@@ -30,44 +19,167 @@ const ALLOWED_PARAMS = new Set([
   "cursor",
 ]);
 
-// ======================================================
-// JSON response helper
-// ======================================================
-
-function json(
-  data,
-  status = 200,
-  extraHeaders = {}
-) {
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(
     JSON.stringify(data),
     {
       status,
-
       headers: {
         "content-type":
           "application/json;charset=UTF-8",
-
-        "cache-control":
-          "no-store",
-
-        "access-control-allow-origin":
-          "*",
-
+        "cache-control": "no-store",
+        "access-control-allow-origin": "*",
         ...extraHeaders,
       },
     }
   );
 }
 
+function validSymbol(symbol) {
+  return /^[A-Z0-9]{3,30}USDT$/.test(symbol);
+}
+
 // ======================================================
-// Symbol validation
+// Bybit Private API authentication
 // ======================================================
 
-function validSymbol(symbol) {
-  return /^[A-Z0-9]{3,30}USDT$/.test(
-    symbol
+async function hmacSha256Hex(secret, message) {
+  const encoder = new TextEncoder();
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    {
+      name: "HMAC",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"]
   );
+
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(message)
+  );
+
+  return Array.from(
+    new Uint8Array(signature)
+  )
+    .map(
+      (b) =>
+        b.toString(16).padStart(2, "0")
+    )
+    .join("");
+}
+
+async function fetchOpenPositions(env) {
+  const apiKey = env.BYBIT_API_KEY;
+  const apiSecret = env.BYBIT_API_SECRET;
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(
+      "BYBIT_API_KEY or BYBIT_API_SECRET is missing"
+    );
+  }
+
+  const timestamp = Date.now().toString();
+  const recvWindow = "5000";
+
+  const queryString =
+    "category=linear&settleCoin=USDT";
+
+  const signPayload =
+    timestamp +
+    apiKey +
+    recvWindow +
+    queryString;
+
+  const signature =
+    await hmacSha256Hex(
+      apiSecret,
+      signPayload
+    );
+
+  const url =
+    BYBIT_BASE +
+    "/v5/position/list?" +
+    queryString;
+
+  const response = await fetch(
+    url,
+    {
+      headers: {
+        "X-BAPI-API-KEY":
+          apiKey,
+
+        "X-BAPI-TIMESTAMP":
+          timestamp,
+
+        "X-BAPI-SIGN":
+          signature,
+
+        "X-BAPI-RECV-WINDOW":
+          recvWindow,
+
+        "Accept":
+          "application/json",
+      },
+    }
+  );
+
+  const data =
+    await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      `Bybit HTTP ${response.status}`
+    );
+  }
+
+  if (data.retCode !== 0) {
+    throw new Error(
+      `Bybit ${data.retCode}: ${data.retMsg}`
+    );
+  }
+
+  return (
+    data.result?.list || []
+  )
+    .filter(
+      (position) =>
+        Number(position.size) > 0
+    )
+    .map(
+      (position) => ({
+        symbol:
+          position.symbol,
+
+        side:
+          position.side,
+
+        size:
+          position.size,
+
+        avgPrice:
+          position.avgPrice,
+
+        markPrice:
+          position.markPrice,
+
+        leverage:
+          position.leverage,
+
+        positionValue:
+          position.positionValue,
+
+        unrealisedPnl:
+          position.unrealisedPnl,
+
+        liqPrice:
+          position.liqPrice,
+      })
+    );
 }
 
 // ======================================================
@@ -133,46 +245,47 @@ function parseCSV(text) {
 
   return lines
     .slice(1)
-    .map((line) => {
-      const values =
-        csvLine(line);
+    .map(
+      (line) => {
+        const values =
+          csvLine(line);
 
-      const row = {};
+        const row = {};
 
-      headers.forEach(
-        (header, index) => {
-          let value =
-            values[index] ?? "";
+        headers.forEach(
+          (header, index) => {
+            let value =
+              values[index] ?? "";
 
-          if (value === "True") {
-            value = true;
+            if (
+              value === "True"
+            ) {
+              value = true;
 
-          } else if (
-            value === "False"
-          ) {
-            value = false;
+            } else if (
+              value === "False"
+            ) {
+              value = false;
 
-          } else if (
-            value !== "" &&
-            !Number.isNaN(
-              Number(value)
-            )
-          ) {
-            value =
-              Number(value);
+            } else if (
+              value !== "" &&
+              !Number.isNaN(
+                Number(value)
+              )
+            ) {
+              value =
+                Number(value);
+            }
+
+            row[header] =
+              value;
           }
+        );
 
-          row[header] = value;
-        }
-      );
-
-      return row;
-    });
+        return row;
+      }
+    );
 }
-
-// ======================================================
-// GitHub CSV fetch
-// ======================================================
 
 async function fetchGitHubCSV(
   filename
@@ -199,8 +312,7 @@ async function fetchGitHubCSV(
 
   if (!response.ok) {
     throw new Error(
-      `GitHub ${filename} ` +
-      `HTTP ${response.status}`
+      `GitHub ${filename} HTTP ${response.status}`
     );
   }
 
@@ -208,13 +320,6 @@ async function fetchGitHubCSV(
     await response.text()
   );
 }
-
-// ======================================================
-// GitHub scan.json fetch
-//
-// /scan now reads the complete scan.json,
-// including positions.BTCUSDT / COMPUSDT.
-// ======================================================
 
 async function fetchGitHubJSON(
   filename
@@ -241,8 +346,7 @@ async function fetchGitHubJSON(
 
   if (!response.ok) {
     throw new Error(
-      `GitHub ${filename} ` +
-      `HTTP ${response.status}`
+      `GitHub ${filename} HTTP ${response.status}`
     );
   }
 
@@ -250,7 +354,7 @@ async function fetchGitHubJSON(
 }
 
 // ======================================================
-// Direct Bybit kline fetch
+// Public Bybit kline
 // ======================================================
 
 async function fetchKlines(
@@ -297,8 +401,7 @@ async function fetchKlines(
 
   if (!response.ok) {
     throw new Error(
-      `Bybit HTTP ` +
-      `${response.status}`
+      `Bybit HTTP ${response.status}`
     );
   }
 
@@ -320,10 +423,8 @@ async function fetchKlines(
 
 export default {
 
-  async fetch(
-    request,
-    env
-  ) {
+  async fetch(request, env) {
+
     try {
 
       if (
@@ -343,18 +444,37 @@ export default {
         new URL(request.url);
 
       // =================================================
-      // 1. Latest complete market scan
+      // TEST: actual Bybit open positions
+      //
+      // /test-positions
+      // =================================================
+
+      if (
+        incoming.pathname ===
+        "/test-positions"
+      ) {
+        const positions =
+          await fetchOpenPositions(
+            env
+          );
+
+        return json({
+          ok: true,
+
+          test:
+            "Bybit Private Position API",
+
+          positionCount:
+            positions.length,
+
+          positions,
+        });
+      }
+
+      // =================================================
+      // Latest scan
       //
       // /scan
-      //
-      // Reads latest/scan.json.
-      //
-      // Includes:
-      // - generated_at
-      // - universe_count
-      // - positions
-      // - longs
-      // - shorts
       // =================================================
 
       if (
@@ -394,7 +514,7 @@ export default {
       }
 
       // =================================================
-      // 2. Run GitHub Actions screener on demand
+      // Run GitHub Actions scan
       //
       // /run-scan
       // =================================================
@@ -412,8 +532,7 @@ export default {
               ok: false,
 
               error:
-                "GITHUB_TOKEN secret " +
-                "is missing",
+                "GITHUB_TOKEN secret is missing",
             },
             500
           );
@@ -437,8 +556,7 @@ export default {
                   "application/vnd.github+json",
 
                 "Authorization":
-                  `Bearer ` +
-                  `${env.GITHUB_TOKEN}`,
+                  `Bearer ${env.GITHUB_TOKEN}`,
 
                 "X-GitHub-Api-Version":
                   "2022-11-28",
@@ -481,8 +599,7 @@ export default {
             "started",
 
           message:
-            "Latest Bybit HTF/LTF " +
-            "scan started",
+            "Latest Bybit HTF/LTF scan started",
 
           repository:
             `${GITHUB_OWNER}/` +
@@ -498,24 +615,15 @@ export default {
       }
 
       // =================================================
-      // 3. Individual coin raw 5TF data
+      // Individual symbol 5TF raw candles
       //
       // /?symbol=BTCUSDT
-      // /?symbol=COMPUSDT
-      //
-      // Returns:
-      // 1D
-      // 4H
-      // 1H
-      // 15m
-      // 5m
-      //
-      // 200 candles each
       // =================================================
 
       if (
         incoming.pathname === "/"
       ) {
+
         const symbol =
           (
             incoming
@@ -530,6 +638,7 @@ export default {
           return json(
             {
               ok: false,
+
               error:
                 "Invalid symbol",
             },
@@ -594,9 +703,7 @@ export default {
       }
 
       // =================================================
-      // 4. Restricted Bybit public-market proxy
-      //
-      // Used by GitHub Actions screener
+      // Restricted public Bybit proxy
       // =================================================
 
       if (
@@ -683,8 +790,7 @@ export default {
               response.headers.get(
                 "content-type"
               ) ||
-              "application/json;" +
-              "charset=UTF-8",
+              "application/json;charset=UTF-8",
 
             "cache-control":
               "no-store",
