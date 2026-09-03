@@ -25,8 +25,7 @@ function json(data, status = 200, extraHeaders = {}) {
     {
       status,
       headers: {
-        "content-type":
-          "application/json;charset=UTF-8",
+        "content-type": "application/json;charset=UTF-8",
         "cache-control": "no-store",
         "access-control-allow-origin": "*",
         ...extraHeaders,
@@ -63,19 +62,14 @@ async function hmacSha256Hex(secret, message) {
     encoder.encode(message)
   );
 
-  return Array.from(
-    new Uint8Array(signature)
-  )
-    .map(
-      (b) =>
-        b.toString(16).padStart(2, "0")
-    )
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
 async function fetchOpenPositions(env) {
-  const apiKey = env.BYBIT_API_KEY;
-  const apiSecret = env.BYBIT_API_SECRET;
+  const apiKey = String(env.BYBIT_API_KEY || "").trim();
+  const apiSecret = String(env.BYBIT_API_SECRET || "").trim();
 
   if (!apiKey || !apiSecret) {
     throw new Error(
@@ -86,8 +80,9 @@ async function fetchOpenPositions(env) {
   const timestamp = Date.now().toString();
   const recvWindow = "5000";
 
-  const queryString =
-    "category=linear&settleCoin=USDT";
+  // IMPORTANT:
+  // The exact same query string is used for signing and request URL.
+  const queryString = "category=linear&settleCoin=USDT";
 
   const signPayload =
     timestamp +
@@ -95,11 +90,10 @@ async function fetchOpenPositions(env) {
     recvWindow +
     queryString;
 
-  const signature =
-    await hmacSha256Hex(
-      apiSecret,
-      signPayload
-    );
+  const signature = await hmacSha256Hex(
+    apiSecret,
+    signPayload
+  );
 
   const url =
     BYBIT_BASE +
@@ -110,26 +104,16 @@ async function fetchOpenPositions(env) {
     url,
     {
       headers: {
-        "X-BAPI-API-KEY":
-          apiKey,
-
-        "X-BAPI-TIMESTAMP":
-          timestamp,
-
-        "X-BAPI-SIGN":
-          signature,
-
-        "X-BAPI-RECV-WINDOW":
-          recvWindow,
-
-        "Accept":
-          "application/json",
+        "X-BAPI-API-KEY": apiKey,
+        "X-BAPI-TIMESTAMP": timestamp,
+        "X-BAPI-SIGN": signature,
+        "X-BAPI-RECV-WINDOW": recvWindow,
+        "Accept": "application/json",
       },
     }
   );
 
-  const data =
-    await response.json();
+  const data = await response.json();
 
   if (!response.ok) {
     throw new Error(
@@ -143,43 +127,57 @@ async function fetchOpenPositions(env) {
     );
   }
 
-  return (
-    data.result?.list || []
-  )
+  return (data.result?.list || [])
     .filter(
       (position) =>
         Number(position.size) > 0
     )
     .map(
       (position) => ({
-        symbol:
-          position.symbol,
-
-        side:
-          position.side,
-
-        size:
-          position.size,
-
-        avgPrice:
-          position.avgPrice,
-
-        markPrice:
-          position.markPrice,
-
-        leverage:
-          position.leverage,
-
-        positionValue:
-          position.positionValue,
-
-        unrealisedPnl:
-          position.unrealisedPnl,
-
-        liqPrice:
-          position.liqPrice,
+        symbol: position.symbol,
+        side: position.side,
+        size: position.size,
+        avgPrice: position.avgPrice,
+        markPrice: position.markPrice,
+        leverage: position.leverage,
+        positionValue: position.positionValue,
+        unrealisedPnl: position.unrealisedPnl,
+        liqPrice: position.liqPrice,
       })
     );
+}
+
+// ======================================================
+// GitHub token authentication
+//
+// Used for /position-symbols so account position symbols
+// are not exposed through an unauthenticated public URL.
+// GitHub Actions will send:
+// Authorization: Bearer <GITHUB_TOKEN>
+// ======================================================
+
+function isAuthorizedGitHubRequest(request, env) {
+  if (!env.GITHUB_TOKEN) {
+    return false;
+  }
+
+  const authorization =
+    request.headers.get("Authorization") || "";
+
+  if (!authorization.startsWith("Bearer ")) {
+    return false;
+  }
+
+  const suppliedToken =
+    authorization.slice(7).trim();
+
+  const expectedToken =
+    String(env.GITHUB_TOKEN).trim();
+
+  return (
+    suppliedToken.length > 0 &&
+    suppliedToken === expectedToken
+  );
 }
 
 // ======================================================
@@ -192,11 +190,7 @@ function csvLine(line) {
   let current = "";
   let quoted = false;
 
-  for (
-    let i = 0;
-    i < line.length;
-    i++
-  ) {
+  for (let i = 0; i < line.length; i++) {
     const char = line[i];
 
     if (char === '"') {
@@ -209,14 +203,12 @@ function csvLine(line) {
       } else {
         quoted = !quoted;
       }
-
     } else if (
       char === "," &&
       !quoted
     ) {
       values.push(current);
       current = "";
-
     } else {
       current += char;
     }
@@ -240,15 +232,13 @@ function parseCSV(text) {
     return [];
   }
 
-  const headers =
-    csvLine(lines[0]);
+  const headers = csvLine(lines[0]);
 
   return lines
     .slice(1)
     .map(
       (line) => {
-        const values =
-          csvLine(line);
+        const values = csvLine(line);
 
         const row = {};
 
@@ -257,28 +247,22 @@ function parseCSV(text) {
             let value =
               values[index] ?? "";
 
-            if (
-              value === "True"
-            ) {
+            if (value === "True") {
               value = true;
-
             } else if (
               value === "False"
             ) {
               value = false;
-
             } else if (
               value !== "" &&
               !Number.isNaN(
                 Number(value)
               )
             ) {
-              value =
-                Number(value);
+              value = Number(value);
             }
 
-            row[header] =
-              value;
+            row[header] = value;
           }
         );
 
@@ -287,28 +271,23 @@ function parseCSV(text) {
     );
 }
 
-async function fetchGitHubCSV(
-  filename
-) {
+async function fetchGitHubCSV(filename) {
   const url =
     `https://raw.githubusercontent.com/` +
     `${GITHUB_OWNER}/${GITHUB_REPO}/` +
     `${GITHUB_BRANCH}/latest/` +
     `${filename}`;
 
-  const response =
-    await fetch(
-      url,
-      {
-        headers: {
-          accept:
-            "text/plain",
-
-          "user-agent":
-            "bybit-trading-screener-worker",
-        },
-      }
-    );
+  const response = await fetch(
+    url,
+    {
+      headers: {
+        accept: "text/plain",
+        "user-agent":
+          "bybit-trading-screener-worker",
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -321,28 +300,23 @@ async function fetchGitHubCSV(
   );
 }
 
-async function fetchGitHubJSON(
-  filename
-) {
+async function fetchGitHubJSON(filename) {
   const url =
     `https://raw.githubusercontent.com/` +
     `${GITHUB_OWNER}/${GITHUB_REPO}/` +
     `${GITHUB_BRANCH}/latest/` +
     `${filename}`;
 
-  const response =
-    await fetch(
-      url,
-      {
-        headers: {
-          accept:
-            "application/json",
-
-          "user-agent":
-            "bybit-trading-screener-worker",
-        },
-      }
-    );
+  const response = await fetch(
+    url,
+    {
+      headers: {
+        accept: "application/json",
+        "user-agent":
+          "bybit-trading-screener-worker",
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -388,16 +362,14 @@ async function fetchKlines(
     String(limit)
   );
 
-  const response =
-    await fetch(
-      apiUrl.toString(),
-      {
-        headers: {
-          accept:
-            "application/json",
-        },
-      }
-    );
+  const response = await fetch(
+    apiUrl.toString(),
+    {
+      headers: {
+        accept: "application/json",
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -405,8 +377,7 @@ async function fetchKlines(
     );
   }
 
-  const data =
-    await response.json();
+  const data = await response.json();
 
   if (data.retCode !== 0) {
     throw new Error(
@@ -422,52 +393,94 @@ async function fetchKlines(
 // ======================================================
 
 export default {
-
   async fetch(request, env) {
-
     try {
-
-      if (
-        request.method !== "GET"
-      ) {
-        return json(
-          {
-            ok: false,
-            error:
-              "GET requests only",
-          },
-          405
-        );
-      }
-
       const incoming =
         new URL(request.url);
 
       // =================================================
-      // TEST: actual Bybit open positions
+      // TEST ONLY:
+      // actual Bybit open positions
       //
       // /test-positions
+      //
+      // Kept temporarily because it has already been
+      // verified successfully.
       // =================================================
 
       if (
+        request.method === "GET" &&
         incoming.pathname ===
-        "/test-positions"
+          "/test-positions"
       ) {
         const positions =
-          await fetchOpenPositions(
-            env
-          );
+          await fetchOpenPositions(env);
 
         return json({
           ok: true,
-
           test:
             "Bybit Private Position API",
-
           positionCount:
             positions.length,
-
           positions,
+        });
+      }
+
+      // =================================================
+      // PRIVATE:
+      // current position symbols for GitHub Actions
+      //
+      // GET /position-symbols
+      // Authorization: Bearer GITHUB_TOKEN
+      //
+      // Only symbols are returned.
+      // No size / avg price / PnL / liquidation price.
+      // =================================================
+
+      if (
+        request.method === "GET" &&
+        incoming.pathname ===
+          "/position-symbols"
+      ) {
+        if (
+          !isAuthorizedGitHubRequest(
+            request,
+            env
+          )
+        ) {
+          return json(
+            {
+              ok: false,
+              error: "Unauthorized",
+            },
+            401
+          );
+        }
+
+        const positions =
+          await fetchOpenPositions(env);
+
+        const symbols =
+          [
+            ...new Set(
+              positions
+                .map(
+                  (position) =>
+                    position.symbol
+                )
+                .filter(validSymbol)
+            ),
+          ].sort();
+
+        return json({
+          ok: true,
+          source:
+            "Bybit Private Position API",
+          fetchedAt:
+            new Date().toISOString(),
+          positionCount:
+            symbols.length,
+          symbols,
         });
       }
 
@@ -478,8 +491,9 @@ export default {
       // =================================================
 
       if (
+        request.method === "GET" &&
         incoming.pathname ===
-        "/scan"
+          "/scan"
       ) {
         const scan =
           await fetchGitHubJSON(
@@ -488,22 +502,17 @@ export default {
 
         return json({
           ...scan,
-
           repository:
             `${GITHUB_OWNER}/` +
             `${GITHUB_REPO}`,
-
           servedAt:
-            new Date()
-              .toISOString(),
-
+            new Date().toISOString(),
           longCount:
             Array.isArray(
               scan.longs
             )
               ? scan.longs.length
               : 0,
-
           shortCount:
             Array.isArray(
               scan.shorts
@@ -520,17 +529,14 @@ export default {
       // =================================================
 
       if (
+        request.method === "GET" &&
         incoming.pathname ===
-        "/run-scan"
+          "/run-scan"
       ) {
-
-        if (
-          !env.GITHUB_TOKEN
-        ) {
+        if (!env.GITHUB_TOKEN) {
           return json(
             {
               ok: false,
-
               error:
                 "GITHUB_TOKEN secret is missing",
             },
@@ -580,38 +586,43 @@ export default {
           return json(
             {
               ok: false,
-
               status:
                 response.status,
-
               error:
                 errorText,
             },
-
             response.status
           );
         }
 
         return json({
           ok: true,
-
-          status:
-            "started",
-
+          status: "started",
           message:
             "Latest Bybit HTF/LTF scan started",
-
           repository:
             `${GITHUB_OWNER}/` +
             `${GITHUB_REPO}`,
-
           workflow:
             "bybit-scan.yml",
-
           startedAt:
-            new Date()
-              .toISOString(),
+            new Date().toISOString(),
         });
+      }
+
+      // =================================================
+      // From here: GET requests only
+      // =================================================
+
+      if (request.method !== "GET") {
+        return json(
+          {
+            ok: false,
+            error:
+              "GET requests only",
+          },
+          405
+        );
       }
 
       // =================================================
@@ -623,7 +634,6 @@ export default {
       if (
         incoming.pathname === "/"
       ) {
-
         const symbol =
           (
             incoming
@@ -632,13 +642,10 @@ export default {
             "BTCUSDT"
           ).toUpperCase();
 
-        if (
-          !validSymbol(symbol)
-        ) {
+        if (!validSymbol(symbol)) {
           return json(
             {
               ok: false,
-
               error:
                 "Invalid symbol",
             },
@@ -656,45 +663,33 @@ export default {
 
         const entries =
           await Promise.all(
-            Object
-              .entries(
-                timeframes
-              )
-              .map(
-                async (
-                  [
-                    name,
-                    interval
-                  ]
-                ) => {
+            Object.entries(
+              timeframes
+            ).map(
+              async (
+                [name, interval]
+              ) => {
+                const candles =
+                  await fetchKlines(
+                    symbol,
+                    interval,
+                    200
+                  );
 
-                  const candles =
-                    await fetchKlines(
-                      symbol,
-                      interval,
-                      200
-                    );
-
-                  return [
-                    name,
-                    candles
-                  ];
-                }
-              )
+                return [
+                  name,
+                  candles,
+                ];
+              }
+            )
           );
 
         return json({
           ok: true,
-
           symbol,
-
-          source:
-            "Bybit V5",
-
+          source: "Bybit V5",
           fetchedAt:
-            new Date()
-              .toISOString(),
-
+            new Date().toISOString(),
           timeframes:
             Object.fromEntries(
               entries
@@ -714,7 +709,6 @@ export default {
         return json(
           {
             retCode: 10001,
-
             retMsg:
               "Path not allowed",
           },
@@ -729,16 +723,11 @@ export default {
         );
 
       for (
-        const [
-          key,
-          value
-        ]
+        const [key, value]
         of incoming.searchParams
       ) {
         if (
-          ALLOWED_PARAMS.has(
-            key
-          )
+          ALLOWED_PARAMS.has(key)
         ) {
           upstream
             .searchParams
@@ -752,7 +741,6 @@ export default {
       if (
         incoming.pathname !==
           "/v5/market/time" &&
-
         !upstream
           .searchParams
           .has("category")
@@ -784,17 +772,14 @@ export default {
         {
           status:
             response.status,
-
           headers: {
             "content-type":
               response.headers.get(
                 "content-type"
               ) ||
               "application/json;charset=UTF-8",
-
             "cache-control":
               "no-store",
-
             "access-control-allow-origin":
               "*",
           },
@@ -802,11 +787,9 @@ export default {
       );
 
     } catch (error) {
-
       return json(
         {
           ok: false,
-
           error:
             error?.message ||
             "Worker error",
