@@ -157,7 +157,8 @@ jobs:
             echo "No repository changes"
           else
             git commit -m "Update latest Bybit scan"
-            git push
+            git pull --rebase origin main
+            git push origin main
           fi
 
       - name: Configure GitHub Pages
