@@ -154,7 +154,7 @@ async function fetchKlines(symbol, interval, limit = 200) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     try {
       if (request.method !== "GET") {
         return json(
