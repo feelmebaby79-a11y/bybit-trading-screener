@@ -3,14 +3,25 @@ name: Bybit HTF LTF Scan
 on:
   workflow_dispatch:
   schedule:
+    # 매일 한국시간 오전 9시
     - cron: "0 0 * * *"
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -51,71 +62,35 @@ jobs:
               with open(path, "r", encoding="utf-8-sig") as f:
                   return list(csv.DictReader(f))
 
+          def convert_value(value):
+              if value is None or value == "":
+                  return None
+
+              lower = str(value).lower()
+
+              if lower == "true":
+                  return True
+
+              if lower == "false":
+                  return False
+
+              try:
+                  return float(value)
+              except (ValueError, TypeError):
+                  return value
+
           def clean(rows):
-              numeric = {
-                  "last",
-                  "turnover24h",
-                  "price24h_pct",
-                  "15m_rsi",
-                  "long_score",
-                  "long_rr",
-                  "long_entry",
-                  "long_stop_hint",
-                  "long_target_hint",
-                  "short_score",
-                  "short_rr",
-                  "short_entry",
-                  "short_stop_hint",
-                  "short_target_hint",
-              }
+              return [
+                  {
+                      key: convert_value(value)
+                      for key, value in row.items()
+                  }
+                  for row in rows
+              ]
 
-              boolean = {
-                  "long_htf_aligned",
-                  "short_htf_aligned",
-                  "long_sweep15",
-                  "long_mss15",
-                  "long_disp15",
-                  "short_sweep15",
-                  "short_mss15",
-                  "short_disp15",
-              }
-
-              output = []
-
-              for row in rows:
-                  item = {}
-
-                  for key, value in row.items():
-
-                      if key in numeric:
-                          try:
-                              item[key] = float(value)
-                          except:
-                              item[key] = None
-
-                      elif key in boolean:
-                          item[key] = (
-                              str(value).lower() == "true"
-                          )
-
-                      else:
-                          item[key] = value
-
-                  output.append(item)
-
-              return output
-
-          longs = clean(
-              read_csv("scan_results_long.csv")
-          )
-
-          shorts = clean(
-              read_csv("scan_results_short.csv")
-          )
-
-          full = clean(
-              read_csv("scan_results.csv")
-          )
+          full = clean(read_csv("scan_results.csv"))
+          longs = clean(read_csv("scan_results_long.csv"))
+          shorts = clean(read_csv("scan_results_short.csv"))
 
           data = {
               "ok": True,
@@ -123,8 +98,7 @@ jobs:
                   timezone.utc
               ).isoformat(),
               "source": "Bybit V5 via Cloudflare",
-              "scan_method":
-                  "1D > 4H > 1H > 15m > 5m",
+              "scan_method": "1D > 4H > 1H > 15m > 5m",
               "universe_count": len(full),
               "longs": longs,
               "shorts": shorts
@@ -142,24 +116,37 @@ jobs:
                   indent=2
               )
 
-          print(
-              "Created latest/scan.json"
-          )
-          print(
-              "Universe:",
-              len(full)
-          )
-          print(
-              "Long candidates:",
-              len(longs)
-          )
-          print(
-              "Short candidates:",
-              len(shorts)
-          )
+          print("Created latest/scan.json")
+          print("Universe:", len(full))
+          print("Long candidates:", len(longs))
+          print("Short candidates:", len(shorts))
           PY
 
-      - name: Commit latest results
+      - name: Create Pages site
+        run: |
+          mkdir -p public/latest
+
+          cp latest/scan.json public/latest/scan.json
+          cp latest/scan_results.csv public/latest/scan_results.csv
+          cp latest/scan_results_long.csv public/latest/scan_results_long.csv
+          cp latest/scan_results_short.csv public/latest/scan_results_short.csv
+
+          cat > public/index.html <<'EOF'
+          <!doctype html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Bybit HTF LTF Screener</title>
+          </head>
+          <body>
+            <h1>Bybit HTF/LTF Screener</h1>
+            <p>Latest scan is available.</p>
+            <p><a href="./latest/scan.json">Open latest scan.json</a></p>
+          </body>
+          </html>
+          EOF
+
+      - name: Save latest results to repository
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -167,8 +154,20 @@ jobs:
           git add latest/
 
           if git diff --cached --quiet; then
-            echo "No changes to commit"
+            echo "No repository changes"
           else
             git commit -m "Update latest Bybit scan"
             git push
           fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
