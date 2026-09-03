@@ -83,55 +83,43 @@ class Cfg:
 # =========================================================
 
 def api(path, params, cfg, retries=4):
-
     """
-
     Requests public Bybit market data through our Cloudflare Worker.
-
     """
 
     err = None
-
     url = BASE + path
 
     for i in range(retries):
-
         try:
-
             r = S.get(
-    url,
-    params=params,
-    timeout=cfg.timeout,
-)
+                url,
+                params=params,
+                timeout=cfg.timeout,
+            )
 
-# Debug HTTP errors so we can identify
-# whether Cloudflare or Bybit is returning the 403.
-if not r.ok:
-    print("\n========== HTTP DEBUG ==========")
-    print("STATUS :", r.status_code)
-    print("URL    :", r.url)
-    print("SERVER :", r.headers.get("server"))
-    print("CF-RAY :", r.headers.get("cf-ray"))
-    print("TYPE   :", r.headers.get("content-type"))
-    print("BODY   :", r.text[:2000])
-    print("================================\n")
+            if not r.ok:
+                print("\n========== HTTP DEBUG ==========")
+                print("STATUS :", r.status_code)
+                print("URL    :", r.url)
+                print("SERVER :", r.headers.get("server"))
+                print("CF-RAY :", r.headers.get("cf-ray"))
+                print("TYPE   :", r.headers.get("content-type"))
+                print("BODY   :", r.text[:2000])
+                print("================================\n")
 
-r.raise_for_status()
+            r.raise_for_status()
 
-j = r.json()
+            j = r.json()
 
             if j.get("retCode") == 0:
-
                 return j
 
             err = RuntimeError(
-
                 j.get("retMsg", "Unknown Bybit API error")
-
             )
 
         except Exception as e:
-
             err = e
 
         time.sleep(0.5 * (2 ** i))
