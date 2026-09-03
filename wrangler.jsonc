@@ -1,5 +1,8 @@
 {
-  "name": "bybit-chart-data",
+  "name": "bybit-trading-screener",
   "main": "worker.js",
-  "compatibility_date": "2026-09-02"
+  "compatibility_date": "2026-09-02",
+  "placement": {
+    "region": "aws:ap-northeast-2"
+  }
 }
