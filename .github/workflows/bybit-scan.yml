@@ -2,13 +2,15 @@ name: Bybit HTF LTF Scan
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: write
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout repository
@@ -32,14 +34,132 @@ jobs:
             --top 15 \
             --output scan_results.csv
 
-      - name: Save latest scan files
+      - name: Build latest files
         run: |
           mkdir -p latest
+
           cp scan_results.csv latest/scan_results.csv
           cp scan_results_long.csv latest/scan_results_long.csv
           cp scan_results_short.csv latest/scan_results_short.csv
 
-      - name: Commit scan results
+          python - <<'PY'
+          import csv
+          import json
+          from datetime import datetime, timezone
+
+          def read_csv(path):
+              with open(path, "r", encoding="utf-8-sig") as f:
+                  return list(csv.DictReader(f))
+
+          def clean(rows):
+              numeric = {
+                  "last",
+                  "turnover24h",
+                  "price24h_pct",
+                  "15m_rsi",
+                  "long_score",
+                  "long_rr",
+                  "long_entry",
+                  "long_stop_hint",
+                  "long_target_hint",
+                  "short_score",
+                  "short_rr",
+                  "short_entry",
+                  "short_stop_hint",
+                  "short_target_hint",
+              }
+
+              boolean = {
+                  "long_htf_aligned",
+                  "short_htf_aligned",
+                  "long_sweep15",
+                  "long_mss15",
+                  "long_disp15",
+                  "short_sweep15",
+                  "short_mss15",
+                  "short_disp15",
+              }
+
+              output = []
+
+              for row in rows:
+                  item = {}
+
+                  for key, value in row.items():
+
+                      if key in numeric:
+                          try:
+                              item[key] = float(value)
+                          except:
+                              item[key] = None
+
+                      elif key in boolean:
+                          item[key] = (
+                              str(value).lower() == "true"
+                          )
+
+                      else:
+                          item[key] = value
+
+                  output.append(item)
+
+              return output
+
+          longs = clean(
+              read_csv("scan_results_long.csv")
+          )
+
+          shorts = clean(
+              read_csv("scan_results_short.csv")
+          )
+
+          full = clean(
+              read_csv("scan_results.csv")
+          )
+
+          data = {
+              "ok": True,
+              "generated_at": datetime.now(
+                  timezone.utc
+              ).isoformat(),
+              "source": "Bybit V5 via Cloudflare",
+              "scan_method":
+                  "1D > 4H > 1H > 15m > 5m",
+              "universe_count": len(full),
+              "longs": longs,
+              "shorts": shorts
+          }
+
+          with open(
+              "latest/scan.json",
+              "w",
+              encoding="utf-8"
+          ) as f:
+              json.dump(
+                  data,
+                  f,
+                  ensure_ascii=False,
+                  indent=2
+              )
+
+          print(
+              "Created latest/scan.json"
+          )
+          print(
+              "Universe:",
+              len(full)
+          )
+          print(
+              "Long candidates:",
+              len(longs)
+          )
+          print(
+              "Short candidates:",
+              len(shorts)
+          )
+          PY
+
+      - name: Commit latest results
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
@@ -49,6 +169,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update Bybit scan results"
+            git commit -m "Update latest Bybit scan"
             git push
           fi
