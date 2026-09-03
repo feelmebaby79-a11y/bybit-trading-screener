@@ -30,7 +30,7 @@ S = requests.Session()
 
 S.headers.update({
 
-    "User-Agent": "bybit-htf-ltf-screener/2.0"
+    "User-Agent": "bybit-htf-ltf-screener/3.0"
 
 })
 
@@ -66,9 +66,13 @@ LIMITS = {
 
 class Cfg:
 
-    min_turnover: float = 5_000_000
+    # First filter: current Bybit USDT perpetuals ranked by 24h turnover.
+    top_turnover: int = 100
 
-    max_symbols: int = 160
+    # Legacy values retained only for CLI/workflow compatibility.
+    min_turnover: float = 0
+
+    max_symbols: int = 100
 
     sleep: float = 0.08
 
@@ -250,13 +254,10 @@ def universe(cfg):
 
     )
 
-    out = out[
-
-        out.turnover24h.fillna(0)
-
-        >= cfg.min_turnover
-
-    ]
+    # No absolute turnover cutoff.
+    # Rank every active USDT perpetual by current 24h turnover,
+    # then keep exactly the TOP 100 available symbols.
+    out = out.dropna(subset=["turnover24h"])
 
     out = out.sort_values(
 
@@ -266,7 +267,8 @@ def universe(cfg):
 
     )
 
-    return out.head(cfg.max_symbols)
+    return out.head(cfg.top_turnover)
+
 
 # =========================================================
 
@@ -1350,35 +1352,8 @@ def side_score(
 
             score -= 1.3
 
-    # 24h performance only minor factor
-
-    if np.isfinite(p24):
-
-        directional = (
-
-            p24 * 100
-
-            if side == "LONG"
-
-            else
-
-            -p24 * 100
-
-        )
-
-        score += float(
-
-            np.clip(
-
-                directional / 5,
-
-                -1,
-
-                1,
-
-            )
-
-        )
+    # 24h performance is NOT rewarded in the score.
+    # It remains an output field and is used only for anti-chase penalties.
 
     # liquidity
 
@@ -1558,6 +1533,41 @@ def scan_symbol(
 
         )
 
+        # Penalize already-expanded moves instead of rewarding 24h gainers/losers.
+        chase_penalty = 0.0
+
+        if np.isfinite(p24):
+
+            pct = p24 * 100
+
+            directional_pct = (
+
+                pct
+
+                if side == "LONG"
+
+                else -pct
+
+            )
+
+            if directional_pct >= 50:
+
+                chase_penalty = 4.0
+
+            elif directional_pct >= 30:
+
+                chase_penalty = 3.0
+
+            elif directional_pct >= 20:
+
+                chase_penalty = 2.0
+
+            elif directional_pct >= 12:
+
+                chase_penalty = 1.0
+
+        score -= chase_penalty
+
         if np.isfinite(rr):
 
             score += min(
@@ -1608,21 +1618,55 @@ def scan_symbol(
 
             )
 
-        trigger_ok = (
+        # A-grade entry model:
+        # HTF alignment + favorable 4H location
+        # + 15m sweep -> MSS -> displacement
+        # + correctly directed 5m FVG + RR >= minimum.
+        if side == "LONG":
 
-            t15["mss"]
+            favorable_location = (
 
-            and
+                F["4H"]["zone"]
 
-            (
-
-                t15["disp"]
-
-                or
-
-                t5["disp"]
+                != "premium"
 
             )
+
+            fvg5_ok = (
+
+                t5["fvg"]
+
+                == "bullish"
+
+            )
+
+        else:
+
+            favorable_location = (
+
+                F["4H"]["zone"]
+
+                != "discount"
+
+            )
+
+            fvg5_ok = (
+
+                t5["fvg"]
+
+                == "bearish"
+
+            )
+
+        trigger_ok = (
+
+            t15["sweep"]
+
+            and t15["mss"]
+
+            and t15["disp"]
+
+            and fvg5_ok
 
         )
 
@@ -1633,6 +1677,10 @@ def scan_symbol(
             and
 
             trigger_ok
+
+            and
+
+            favorable_location
 
             and
 
@@ -1700,6 +1748,22 @@ def scan_symbol(
 
             f"{k}_htf_aligned": htf_aligned,
 
+            f"{k}_chase_penalty": chase_penalty,
+
+            f"{k}_entry_model_ready": bool(
+
+                htf_aligned
+
+                and favorable_location
+
+                and trigger_ok
+
+                and np.isfinite(rr)
+
+                and rr >= cfg.min_rr
+
+            ),
+
             f"{k}_reasons": " | ".join(reasons),
 
         })
@@ -1756,11 +1820,16 @@ def main():
 
     a = ap.parse_args()
 
+    # Keep legacy CLI arguments accepted so the current GitHub Actions
+    # workflow does not break. Universe selection is now always TOP 100
+    # by current 24h turnover.
     cfg = Cfg(
 
-        min_turnover=a.min_turnover,
+        top_turnover=100,
 
-        max_symbols=a.max_symbols,
+        min_turnover=0,
+
+        max_symbols=100,
 
     )
 
@@ -1768,7 +1837,7 @@ def main():
 
     print(
 
-        f"Universe: {len(U)}"
+        f"Universe: {len(U)} (24h turnover TOP {cfg.top_turnover})"
 
     )
 
