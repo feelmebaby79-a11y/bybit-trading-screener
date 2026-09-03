@@ -1,5 +1,10 @@
 const BYBIT_BASE = "https://api.bybit.com";
 
+// Public GitHub repository
+const GITHUB_OWNER = "feelmebaby79-a11y";
+const GITHUB_REPO = "bybit-trading-screener";
+const GITHUB_BRANCH = "main";
+
 const ALLOWED_PATHS = new Set([
   "/v5/market/time",
   "/v5/market/kline",
@@ -15,15 +20,137 @@ const ALLOWED_PARAMS = new Set([
   "cursor",
 ]);
 
-function json(data, status = 200) {
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "content-type": "application/json;charset=UTF-8",
       "cache-control": "no-store",
       "access-control-allow-origin": "*",
+      ...extraHeaders,
     },
   });
+}
+
+function validSymbol(symbol) {
+  return /^[A-Z0-9]{3,30}USDT$/.test(symbol);
+}
+
+function csvLine(line) {
+  const values = [];
+  let current = "";
+  let quoted = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (quoted && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (char === "," && !quoted) {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  values.push(current);
+  return values;
+}
+
+function parseCSV(text) {
+  const lines = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((line) => line.trim() !== "");
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const headers = csvLine(lines[0]);
+
+  return lines.slice(1).map((line) => {
+    const values = csvLine(line);
+    const row = {};
+
+    headers.forEach((header, index) => {
+      let value = values[index] ?? "";
+
+      if (value === "True") value = true;
+      else if (value === "False") value = false;
+      else if (
+        value !== "" &&
+        !Number.isNaN(Number(value))
+      ) {
+        value = Number(value);
+      }
+
+      row[header] = value;
+    });
+
+    return row;
+  });
+}
+
+async function fetchGitHubCSV(filename) {
+  const url =
+    `https://raw.githubusercontent.com/` +
+    `${GITHUB_OWNER}/${GITHUB_REPO}/` +
+    `${GITHUB_BRANCH}/latest/${filename}`;
+
+  const response = await fetch(url, {
+    headers: {
+      accept: "text/plain",
+      "user-agent": "bybit-trading-screener-worker",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `GitHub ${filename} HTTP ${response.status}`
+    );
+  }
+
+  return parseCSV(await response.text());
+}
+
+async function fetchKlines(symbol, interval, limit = 200) {
+  const apiUrl = new URL(
+    BYBIT_BASE + "/v5/market/kline"
+  );
+
+  apiUrl.searchParams.set("category", "linear");
+  apiUrl.searchParams.set("symbol", symbol);
+  apiUrl.searchParams.set("interval", interval);
+  apiUrl.searchParams.set("limit", String(limit));
+
+  const response = await fetch(apiUrl.toString(), {
+    headers: {
+      accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Bybit HTTP ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  if (data.retCode !== 0) {
+    throw new Error(
+      `Bybit: ${data.retMsg}`
+    );
+  }
+
+  return data.result.list;
 }
 
 export default {
@@ -32,8 +159,8 @@ export default {
       if (request.method !== "GET") {
         return json(
           {
-            retCode: 10001,
-            retMsg: "GET requests only",
+            ok: false,
+            error: "GET requests only",
           },
           405
         );
@@ -41,16 +168,45 @@ export default {
 
       const incoming = new URL(request.url);
 
-      // -------------------------------------------------
-      // 1) Convenient chart endpoint
+      // =================================================
+      // 1. Latest full-market scan
+      //
+      // /scan
+      // =================================================
+
+      if (incoming.pathname === "/scan") {
+        const [longs, shorts] = await Promise.all([
+          fetchGitHubCSV("scan_results_long.csv"),
+          fetchGitHubCSV("scan_results_short.csv"),
+        ]);
+
+        return json({
+          ok: true,
+          source: "Bybit HTF/LTF Screener",
+          repository:
+            `${GITHUB_OWNER}/${GITHUB_REPO}`,
+          generatedAt: new Date().toISOString(),
+          longCount: longs.length,
+          shortCount: shorts.length,
+          longs,
+          shorts,
+        });
+      }
+
+      // =================================================
+      // 2. Individual coin 5-timeframe chart data
+      //
       // /?symbol=BTCUSDT
-      // -------------------------------------------------
+      // /?symbol=COMPUSDT
+      // =================================================
+
       if (incoming.pathname === "/") {
         const symbol = (
-          incoming.searchParams.get("symbol") || "BTCUSDT"
+          incoming.searchParams.get("symbol") ||
+          "BTCUSDT"
         ).toUpperCase();
 
-        if (!/^[A-Z0-9]{3,30}USDT$/.test(symbol)) {
+        if (!validSymbol(symbol)) {
           return json(
             {
               ok: false,
@@ -71,54 +227,13 @@ export default {
         const entries = await Promise.all(
           Object.entries(timeframes).map(
             async ([name, interval]) => {
-              const apiUrl = new URL(
-                BYBIT_BASE + "/v5/market/kline"
+              const candles = await fetchKlines(
+                symbol,
+                interval,
+                200
               );
 
-              apiUrl.searchParams.set(
-                "category",
-                "linear"
-              );
-
-              apiUrl.searchParams.set(
-                "symbol",
-                symbol
-              );
-
-              apiUrl.searchParams.set(
-                "interval",
-                interval
-              );
-
-              apiUrl.searchParams.set(
-                "limit",
-                "200"
-              );
-
-              const response = await fetch(
-                apiUrl.toString(),
-                {
-                  headers: {
-                    accept: "application/json",
-                  },
-                }
-              );
-
-              if (!response.ok) {
-                throw new Error(
-                  `Bybit ${name} HTTP ${response.status}`
-                );
-              }
-
-              const data = await response.json();
-
-              if (data.retCode !== 0) {
-                throw new Error(
-                  `Bybit ${name}: ${data.retMsg}`
-                );
-              }
-
-              return [name, data.result.list];
+              return [name, candles];
             }
           )
         );
@@ -127,13 +242,17 @@ export default {
           ok: true,
           symbol,
           source: "Bybit V5",
-          timeframes: Object.fromEntries(entries),
+          timeframes:
+            Object.fromEntries(entries),
         });
       }
 
-      // -------------------------------------------------
-      // 2) Restricted Bybit market-data proxy
-      // -------------------------------------------------
+      // =================================================
+      // 3. Restricted Bybit public-market proxy
+      //
+      // Used by GitHub Actions screener
+      // =================================================
+
       if (!ALLOWED_PATHS.has(incoming.pathname)) {
         return json(
           {
@@ -148,7 +267,10 @@ export default {
         BYBIT_BASE + incoming.pathname
       );
 
-      for (const [key, value] of incoming.searchParams) {
+      for (
+        const [key, value]
+        of incoming.searchParams
+      ) {
         if (ALLOWED_PARAMS.has(key)) {
           upstream.searchParams.append(
             key,
@@ -157,7 +279,6 @@ export default {
         }
       }
 
-      // Force public linear market data when relevant
       if (
         incoming.pathname !== "/v5/market/time" &&
         !upstream.searchParams.has("category")
@@ -189,11 +310,14 @@ export default {
           "access-control-allow-origin": "*",
         },
       });
+
     } catch (error) {
       return json(
         {
-          retCode: 10000,
-          retMsg: error?.message || "Worker error",
+          ok: false,
+          error:
+            error?.message ||
+            "Worker error",
         },
         500
       );
