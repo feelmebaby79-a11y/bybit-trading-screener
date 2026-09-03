@@ -37,6 +37,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # ============================================================
+      # TOP100 recommendation screener
+      # ============================================================
+
       - name: Run screener
         run: |
           python bybit_htf_ltf_screener.py \
@@ -45,7 +49,18 @@ jobs:
             --top 15 \
             --output scan_results.csv
 
+      # ============================================================
+      # Build latest scan
+      #
+      # - TOP100 = recommendation universe
+      # - Current Bybit positions = automatically detected
+      # - Held coins are tracked even when outside TOP100
+      # ============================================================
+
       - name: Build latest files
+        env:
+          WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
+
         run: |
           mkdir -p latest
 
@@ -56,12 +71,36 @@ jobs:
           python - <<'PY'
           import csv
           import json
+          import os
           import urllib.request
           from datetime import datetime, timezone
 
+
+          WORKER_BASE = (
+              "https://bybit-trading-screener."
+              "feelmebaby79.workers.dev"
+          )
+
+          WORKER_ACCESS_KEY = os.environ.get(
+              "WORKER_ACCESS_KEY",
+              ""
+          ).strip()
+
+
+          # ========================================================
+          # CSV helpers
+          # ========================================================
+
           def read_csv(path):
-              with open(path, "r", encoding="utf-8-sig") as f:
-                  return list(csv.DictReader(f))
+              with open(
+                  path,
+                  "r",
+                  encoding="utf-8-sig"
+              ) as f:
+                  return list(
+                      csv.DictReader(f)
+                  )
+
 
           def convert_value(value):
               if value is None or value == "":
@@ -77,111 +116,308 @@ jobs:
 
               try:
                   return float(value)
-              except (ValueError, TypeError):
+
+              except (
+                  ValueError,
+                  TypeError
+              ):
                   return value
+
 
           def clean(rows):
               return [
                   {
                       key: convert_value(value)
-                      for key, value in row.items()
+                      for key, value
+                      in row.items()
                   }
                   for row in rows
               ]
 
-          full = clean(read_csv("scan_results.csv"))
-          longs = clean(read_csv("scan_results_long.csv"))
-          shorts = clean(read_csv("scan_results_short.csv"))
 
-          # ==========================================================
-          # BTC / COMP 보유종목 데이터는 추천 후보 필터와 별도로 보존
-          # ==========================================================
+          # ========================================================
+          # HTTP helper
+          # ========================================================
 
-          position_symbols = {
-              "BTCUSDT",
-              "COMPUSDT"
-          }
+          def fetch_json(
+              url,
+              headers=None,
+              timeout=30
+          ):
+              request_headers = {
+                  "Accept":
+                      "application/json",
 
-          # TOP100 전체 스캔 결과에 해당 종목이 존재하면
-          # 스크리너 분석 결과도 같이 저장
-          position_analysis = {
-              row.get("symbol"): row
-              for row in full
-              if row.get("symbol") in position_symbols
-          }
+                  "User-Agent":
+                      "bybit-trading-screener-github-actions"
+              }
 
-          # ==========================================================
-          # BTC / COMP 최신 Bybit 5TF raw candle 강제 수집
-          #
-          # 1D / 4H / 1H / 15m / 5m
-          # 각 200 candles
-          #
-          # TOP100 / long / short 후보 포함 여부와 무관
-          # ==========================================================
-
-          worker_base = (
-              "https://bybit-trading-screener."
-              "feelmebaby79.workers.dev"
-          )
-
-          def fetch_position_market(symbol):
-              url = (
-                  f"{worker_base}/"
-                  f"?symbol={symbol}"
-              )
+              if headers:
+                  request_headers.update(
+                      headers
+                  )
 
               request = urllib.request.Request(
                   url,
-                  headers={
-                      "Accept": "application/json",
-                      "User-Agent":
-                          "bybit-trading-screener-github-actions"
-                  }
+                  headers=request_headers
               )
 
               with urllib.request.urlopen(
                   request,
-                  timeout=30
+                  timeout=timeout
               ) as response:
-                  payload = json.loads(
-                      response.read().decode("utf-8")
+
+                  return json.loads(
+                      response
+                      .read()
+                      .decode("utf-8")
                   )
+
+
+          # ========================================================
+          # Automatically get ACTUAL current Bybit positions
+          #
+          # Worker talks to Bybit Private API.
+          # GitHub only receives position symbols.
+          # ========================================================
+
+          def fetch_position_symbols():
+
+              if not WORKER_ACCESS_KEY:
+                  raise RuntimeError(
+                      "WORKER_ACCESS_KEY "
+                      "GitHub secret is missing"
+                  )
+
+              payload = fetch_json(
+                  f"{WORKER_BASE}/position-symbols",
+
+                  headers={
+                      "Authorization":
+                          "Bearer "
+                          + WORKER_ACCESS_KEY
+                  }
+              )
 
               if not payload.get("ok"):
                   raise RuntimeError(
-                      f"Market fetch failed "
-                      f"for {symbol}: {payload}"
+                      "Position symbol fetch failed: "
+                      f"{payload}"
+                  )
+
+              symbols = payload.get(
+                  "symbols",
+                  []
+              )
+
+              if not isinstance(
+                  symbols,
+                  list
+              ):
+                  raise RuntimeError(
+                      "Invalid position symbols payload"
+                  )
+
+              result = []
+
+              for symbol in symbols:
+
+                  symbol = (
+                      str(symbol)
+                      .strip()
+                      .upper()
+                  )
+
+                  if (
+                      symbol and
+                      symbol.endswith("USDT")
+                  ):
+                      result.append(
+                          symbol
+                      )
+
+              return sorted(
+                  set(result)
+              )
+
+
+          # ========================================================
+          # Fetch 5TF raw candles for held coin
+          #
+          # 1D / 4H / 1H / 15m / 5m
+          # ========================================================
+
+          def fetch_position_market(
+              symbol
+          ):
+              payload = fetch_json(
+                  f"{WORKER_BASE}/"
+                  f"?symbol={symbol}"
+              )
+
+              if not payload.get("ok"):
+                  raise RuntimeError(
+                      "Market fetch failed "
+                      f"for {symbol}: "
+                      f"{payload}"
                   )
 
               return payload
 
-          position_market = {}
 
-          for symbol in sorted(position_symbols):
+          # ========================================================
+          # Load recommendation scan
+          # ========================================================
+
+          full = clean(
+              read_csv(
+                  "scan_results.csv"
+              )
+          )
+
+          longs = clean(
+              read_csv(
+                  "scan_results_long.csv"
+              )
+          )
+
+          shorts = clean(
+              read_csv(
+                  "scan_results_short.csv"
+              )
+          )
+
+
+          # ========================================================
+          # Existing screener analysis lookup
+          # ========================================================
+
+          analysis_by_symbol = {}
+
+          for row in full:
+
+              symbol = row.get(
+                  "symbol"
+              )
+
+              if symbol:
+
+                  analysis_by_symbol[
+                      str(symbol).upper()
+                  ] = row
+
+
+          # ========================================================
+          # Dynamic current-position discovery
+          # ========================================================
+
+          try:
+
+              position_symbols = (
+                  fetch_position_symbols()
+              )
+
+              position_fetch_ok = True
+
+              position_fetch_error = None
+
+          except Exception as exc:
+
+              # IMPORTANT:
+              # Never substitute BTC / COMP or any other
+              # hardcoded coin when private lookup fails.
+
+              position_symbols = []
+
+              position_fetch_ok = False
+
+              position_fetch_error = str(
+                  exc
+              )
+
+
+          print(
+              "Current Bybit positions:",
+              position_symbols
+          )
+
+
+          # ========================================================
+          # Build current-position section
+          # ========================================================
+
+          positions = {}
+
+          for symbol in position_symbols:
+
               try:
-                  position_market[symbol] = (
-                      fetch_position_market(symbol)
+
+                  market = (
+                      fetch_position_market(
+                          symbol
+                      )
                   )
 
-              except Exception as exc:
-                  # 보유종목 데이터 한 개가 일시적으로 실패해도
-                  # 전체 TOP100 스캔 결과는 보존
-                  position_market[symbol] = {
-                      "ok": False,
-                      "symbol": symbol,
-                      "error": str(exc)
-                  }
+                  market_ok = True
 
-          # ==========================================================
+                  market_error = None
+
+              except Exception as exc:
+
+                  market = None
+
+                  market_ok = False
+
+                  market_error = str(
+                      exc
+                  )
+
+
+              positions[symbol] = {
+
+                  "symbol":
+                      symbol,
+
+                  # True when this held coin also exists
+                  # inside the normal recommendation scan.
+                  "in_recommendation_scan":
+                      symbol
+                      in analysis_by_symbol,
+
+                  # Existing scanner metrics.
+                  #
+                  # May be null when the held coin is
+                  # outside the recommendation universe.
+                  "analysis":
+                      analysis_by_symbol.get(
+                          symbol
+                      ),
+
+                  # Raw current market structure:
+                  # 1D / 4H / 1H / 15m / 5m
+                  "market":
+                      market,
+
+                  "market_ok":
+                      market_ok,
+
+                  "market_error":
+                      market_error
+              }
+
+
+          # ========================================================
           # Final scan.json
-          # ==========================================================
+          # ========================================================
 
           data = {
+
               "ok": True,
 
-              "generated_at": datetime.now(
-                  timezone.utc
-              ).isoformat(),
+              "generated_at":
+                  datetime.now(
+                      timezone.utc
+                  ).isoformat(),
 
               "source":
                   "Bybit V5 via Cloudflare",
@@ -189,53 +425,70 @@ jobs:
               "scan_method":
                   "1D > 4H > 1H > 15m > 5m",
 
-              "universe_count": len(full),
+              # Recommendation screener result count
+              "universe_count":
+                  len(full),
 
-              # ----------------------------------------------
-              # 보유종목 전용 데이터
-              # ----------------------------------------------
-              "positions": {
-                  "BTCUSDT": {
-                      "analysis":
-                          position_analysis.get(
-                              "BTCUSDT"
-                          ),
-                      "market":
-                          position_market.get(
-                              "BTCUSDT"
-                          )
-                  },
+              # ====================================================
+              # Dynamic position status
+              # ====================================================
 
-                  "COMPUSDT": {
-                      "analysis":
-                          position_analysis.get(
-                              "COMPUSDT"
-                          ),
-                      "market":
-                          position_market.get(
-                              "COMPUSDT"
-                          )
-                  }
-              },
+              "position_fetch_ok":
+                  position_fetch_ok,
 
-              # ----------------------------------------------
-              # 추천 후보
-              # ----------------------------------------------
-              "longs": longs,
-              "shorts": shorts
+              "position_fetch_error":
+                  position_fetch_error,
+
+              "position_count":
+                  len(
+                      position_symbols
+                  ),
+
+              "position_symbols":
+                  position_symbols,
+
+              # ====================================================
+              # Actual current holdings
+              #
+              # No BTC / COMP hardcoding.
+              # ====================================================
+
+              "positions":
+                  positions,
+
+              # ====================================================
+              # New trade recommendation candidates
+              # ====================================================
+
+              "longs":
+                  longs,
+
+              "shorts":
+                  shorts
           }
+
+
+          # ========================================================
+          # Save
+          # ========================================================
 
           with open(
               "latest/scan.json",
               "w",
               encoding="utf-8"
           ) as f:
+
               json.dump(
                   data,
                   f,
                   ensure_ascii=False,
                   indent=2
               )
+
+
+          # ========================================================
+          # Logs
+          # ========================================================
 
           print(
               "Created latest/scan.json"
@@ -257,21 +510,49 @@ jobs:
           )
 
           print(
-              "BTC position data:",
-              position_market.get(
-                  "BTCUSDT",
-                  {}
-              ).get("ok")
+              "Position discovery:",
+              position_fetch_ok
           )
 
+          if position_fetch_error:
+
+              print(
+                  "Position discovery error:",
+                  position_fetch_error
+              )
+
+
           print(
-              "COMP position data:",
-              position_market.get(
-                  "COMPUSDT",
-                  {}
-              ).get("ok")
+              "Position count:",
+              len(
+                  position_symbols
+              )
           )
+
+
+          for symbol in position_symbols:
+
+              item = positions[
+                  symbol
+              ]
+
+              print(
+                  "Position:",
+                  symbol,
+                  "| recommendation universe:",
+                  item[
+                      "in_recommendation_scan"
+                  ],
+                  "| 5TF market:",
+                  item[
+                      "market_ok"
+                  ]
+              )
           PY
+
+      # ============================================================
+      # GitHub Pages
+      # ============================================================
 
       - name: Create Pages site
         run: |
@@ -306,6 +587,10 @@ jobs:
           </html>
           EOF
 
+      # ============================================================
+      # Save latest results
+      # ============================================================
+
       - name: Save latest results to repository
         run: |
           git config user.name "github-actions"
@@ -320,6 +605,10 @@ jobs:
             git pull --rebase origin main
             git push origin main
           fi
+
+      # ============================================================
+      # GitHub Pages deployment
+      # ============================================================
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
