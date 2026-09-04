@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: "bybit-htf-ltf-scan-main"
   cancel-in-progress: false
 
 jobs:
@@ -26,6 +26,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -75,7 +78,6 @@ jobs:
           import urllib.request
           from datetime import datetime, timezone
 
-
           WORKER_BASE = (
               "https://bybit-trading-screener."
               "feelmebaby79.workers.dev"
@@ -86,467 +88,156 @@ jobs:
               ""
           ).strip()
 
-
-          # ========================================================
-          # CSV helpers
-          # ========================================================
-
           def read_csv(path):
-              with open(
-                  path,
-                  "r",
-                  encoding="utf-8-sig"
-              ) as f:
-                  return list(
-                      csv.DictReader(f)
-                  )
-
+              with open(path, "r", encoding="utf-8-sig") as f:
+                  return list(csv.DictReader(f))
 
           def convert_value(value):
               if value is None or value == "":
                   return None
-
               lower = str(value).lower()
-
               if lower == "true":
                   return True
-
               if lower == "false":
                   return False
-
               try:
                   return float(value)
-
-              except (
-                  ValueError,
-                  TypeError
-              ):
+              except (ValueError, TypeError):
                   return value
-
 
           def clean(rows):
               return [
-                  {
-                      key: convert_value(value)
-                      for key, value
-                      in row.items()
-                  }
+                  {key: convert_value(value) for key, value in row.items()}
                   for row in rows
               ]
 
-
-          # ========================================================
-          # HTTP helper
-          # ========================================================
-
-          def fetch_json(
-              url,
-              headers=None,
-              timeout=30
-          ):
+          def fetch_json(url, headers=None, timeout=30):
               request_headers = {
-                  "Accept":
-                      "application/json",
-
-                  "User-Agent":
-                      "bybit-trading-screener-github-actions"
+                  "Accept": "application/json",
+                  "User-Agent": "bybit-trading-screener-github-actions",
               }
-
               if headers:
-                  request_headers.update(
-                      headers
-                  )
-
-              request = urllib.request.Request(
-                  url,
-                  headers=request_headers
-              )
-
-              with urllib.request.urlopen(
-                  request,
-                  timeout=timeout
-              ) as response:
-
-                  return json.loads(
-                      response
-                      .read()
-                      .decode("utf-8")
-                  )
-
-
-          # ========================================================
-          # Automatically get ACTUAL current Bybit positions
-          #
-          # Worker talks to Bybit Private API.
-          # GitHub only receives position symbols.
-          # ========================================================
+                  request_headers.update(headers)
+              request = urllib.request.Request(url, headers=request_headers)
+              with urllib.request.urlopen(request, timeout=timeout) as response:
+                  return json.loads(response.read().decode("utf-8"))
 
           def fetch_position_symbols():
-
               if not WORKER_ACCESS_KEY:
-                  raise RuntimeError(
-                      "WORKER_ACCESS_KEY "
-                      "GitHub secret is missing"
-                  )
+                  raise RuntimeError("WORKER_ACCESS_KEY GitHub secret is missing")
 
               payload = fetch_json(
                   f"{WORKER_BASE}/position-symbols",
-
                   headers={
-                      "Authorization":
-                          "Bearer "
-                          + WORKER_ACCESS_KEY
-                  }
+                      "Authorization": "Bearer " + WORKER_ACCESS_KEY
+                  },
               )
 
               if not payload.get("ok"):
                   raise RuntimeError(
-                      "Position symbol fetch failed: "
-                      f"{payload}"
+                      "Position symbol fetch failed: " + str(payload)
                   )
 
-              symbols = payload.get(
-                  "symbols",
-                  []
-              )
-
-              if not isinstance(
-                  symbols,
-                  list
-              ):
-                  raise RuntimeError(
-                      "Invalid position symbols payload"
-                  )
+              symbols = payload.get("symbols", [])
+              if not isinstance(symbols, list):
+                  raise RuntimeError("Invalid position symbols payload")
 
               result = []
-
               for symbol in symbols:
+                  symbol = str(symbol).strip().upper()
+                  if symbol and symbol.endswith("USDT"):
+                      result.append(symbol)
 
-                  symbol = (
-                      str(symbol)
-                      .strip()
-                      .upper()
-                  )
+              return sorted(set(result))
 
-                  if (
-                      symbol and
-                      symbol.endswith("USDT")
-                  ):
-                      result.append(
-                          symbol
-                      )
-
-              return sorted(
-                  set(result)
-              )
-
-
-          # ========================================================
-          # Fetch 5TF raw candles for held coin
-          #
-          # 1D / 4H / 1H / 15m / 5m
-          # ========================================================
-
-          def fetch_position_market(
-              symbol
-          ):
-              payload = fetch_json(
-                  f"{WORKER_BASE}/"
-                  f"?symbol={symbol}"
-              )
-
+          def fetch_position_market(symbol):
+              payload = fetch_json(f"{WORKER_BASE}/?symbol={symbol}")
               if not payload.get("ok"):
                   raise RuntimeError(
-                      "Market fetch failed "
-                      f"for {symbol}: "
-                      f"{payload}"
+                      f"Market fetch failed for {symbol}: {payload}"
                   )
-
               return payload
 
-
-          # ========================================================
-          # Load recommendation scan
-          # ========================================================
-
-          full = clean(
-              read_csv(
-                  "scan_results.csv"
-              )
-          )
-
-          longs = clean(
-              read_csv(
-                  "scan_results_long.csv"
-              )
-          )
-
-          shorts = clean(
-              read_csv(
-                  "scan_results_short.csv"
-              )
-          )
-
-
-          # ========================================================
-          # Existing screener analysis lookup
-          # ========================================================
+          full = clean(read_csv("scan_results.csv"))
+          longs = clean(read_csv("scan_results_long.csv"))
+          shorts = clean(read_csv("scan_results_short.csv"))
 
           analysis_by_symbol = {}
-
           for row in full:
-
-              symbol = row.get(
-                  "symbol"
-              )
-
+              symbol = row.get("symbol")
               if symbol:
-
-                  analysis_by_symbol[
-                      str(symbol).upper()
-                  ] = row
-
-
-          # ========================================================
-          # Dynamic current-position discovery
-          # ========================================================
+                  analysis_by_symbol[str(symbol).upper()] = row
 
           try:
-
-              position_symbols = (
-                  fetch_position_symbols()
-              )
-
+              position_symbols = fetch_position_symbols()
               position_fetch_ok = True
-
               position_fetch_error = None
-
           except Exception as exc:
-
-              # IMPORTANT:
-              # Never substitute BTC / COMP or any other
-              # hardcoded coin when private lookup fails.
-
+              # Never substitute hardcoded positions when private lookup fails.
               position_symbols = []
-
               position_fetch_ok = False
+              position_fetch_error = str(exc)
 
-              position_fetch_error = str(
-                  exc
-              )
-
-
-          print(
-              "Current Bybit positions:",
-              position_symbols
-          )
-
-
-          # ========================================================
-          # Build current-position section
-          # ========================================================
+          print("Current Bybit positions:", position_symbols)
 
           positions = {}
-
           for symbol in position_symbols:
-
               try:
-
-                  market = (
-                      fetch_position_market(
-                          symbol
-                      )
-                  )
-
+                  market = fetch_position_market(symbol)
                   market_ok = True
-
                   market_error = None
-
               except Exception as exc:
-
                   market = None
-
                   market_ok = False
-
-                  market_error = str(
-                      exc
-                  )
-
+                  market_error = str(exc)
 
               positions[symbol] = {
-
-                  "symbol":
-                      symbol,
-
-                  # True when this held coin also exists
-                  # inside the normal recommendation scan.
-                  "in_recommendation_scan":
-                      symbol
-                      in analysis_by_symbol,
-
-                  # Existing scanner metrics.
-                  #
-                  # May be null when the held coin is
-                  # outside the recommendation universe.
-                  "analysis":
-                      analysis_by_symbol.get(
-                          symbol
-                      ),
-
-                  # Raw current market structure:
-                  # 1D / 4H / 1H / 15m / 5m
-                  "market":
-                      market,
-
-                  "market_ok":
-                      market_ok,
-
-                  "market_error":
-                      market_error
+                  "symbol": symbol,
+                  "in_recommendation_scan": symbol in analysis_by_symbol,
+                  "analysis": analysis_by_symbol.get(symbol),
+                  "market": market,
+                  "market_ok": market_ok,
+                  "market_error": market_error,
               }
 
-
-          # ========================================================
-          # Final scan.json
-          # ========================================================
-
           data = {
-
               "ok": True,
-
-              "generated_at":
-                  datetime.now(
-                      timezone.utc
-                  ).isoformat(),
-
-              "source":
-                  "Bybit V5 via Cloudflare",
-
-              "scan_method":
-                  "1D > 4H > 1H > 15m > 5m",
-
-              # Recommendation screener result count
-              "universe_count":
-                  len(full),
-
-              # ====================================================
-              # Dynamic position status
-              # ====================================================
-
-              "position_fetch_ok":
-                  position_fetch_ok,
-
-              "position_fetch_error":
-                  position_fetch_error,
-
-              "position_count":
-                  len(
-                      position_symbols
-                  ),
-
-              "position_symbols":
-                  position_symbols,
-
-              # ====================================================
-              # Actual current holdings
-              #
-              # No BTC / COMP hardcoding.
-              # ====================================================
-
-              "positions":
-                  positions,
-
-              # ====================================================
-              # New trade recommendation candidates
-              # ====================================================
-
-              "longs":
-                  longs,
-
-              "shorts":
-                  shorts
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "source": "Bybit V5 via Cloudflare",
+              "scan_method": "1D > 4H > 1H > 15m > 5m",
+              "universe_count": len(full),
+              "position_fetch_ok": position_fetch_ok,
+              "position_fetch_error": position_fetch_error,
+              "position_count": len(position_symbols),
+              "position_symbols": position_symbols,
+              "positions": positions,
+              "longs": longs,
+              "shorts": shorts,
           }
 
+          with open("latest/scan.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
 
-          # ========================================================
-          # Save
-          # ========================================================
-
-          with open(
-              "latest/scan.json",
-              "w",
-              encoding="utf-8"
-          ) as f:
-
-              json.dump(
-                  data,
-                  f,
-                  ensure_ascii=False,
-                  indent=2
-              )
-
-
-          # ========================================================
-          # Logs
-          # ========================================================
-
-          print(
-              "Created latest/scan.json"
-          )
-
-          print(
-              "Universe:",
-              len(full)
-          )
-
-          print(
-              "Long candidates:",
-              len(longs)
-          )
-
-          print(
-              "Short candidates:",
-              len(shorts)
-          )
-
-          print(
-              "Position discovery:",
-              position_fetch_ok
-          )
+          print("Created latest/scan.json")
+          print("Universe:", len(full))
+          print("Long candidates:", len(longs))
+          print("Short candidates:", len(shorts))
+          print("Position discovery:", position_fetch_ok)
 
           if position_fetch_error:
+              print("Position discovery error:", position_fetch_error)
 
-              print(
-                  "Position discovery error:",
-                  position_fetch_error
-              )
-
-
-          print(
-              "Position count:",
-              len(
-                  position_symbols
-              )
-          )
-
+          print("Position count:", len(position_symbols))
 
           for symbol in position_symbols:
-
-              item = positions[
-                  symbol
-              ]
-
+              item = positions[symbol]
               print(
                   "Position:",
                   symbol,
                   "| recommendation universe:",
-                  item[
-                      "in_recommendation_scan"
-                  ],
+                  item["in_recommendation_scan"],
                   "| 5TF market:",
-                  item[
-                      "market_ok"
-                  ]
+                  item["market_ok"],
               )
           PY
 
@@ -573,11 +264,7 @@ jobs:
 
           <body>
             <h1>Bybit HTF/LTF Screener</h1>
-
-            <p>
-              Latest scan is available.
-            </p>
-
+            <p>Latest scan is available.</p>
             <p>
               <a href="./latest/scan.json">
                 Open latest scan.json
@@ -602,8 +289,7 @@ jobs:
             echo "No repository changes"
           else
             git commit -m "Update latest Bybit scan"
-            git pull --rebase origin main
-            git push origin main
+            git push origin HEAD:main
           fi
 
       # ============================================================
