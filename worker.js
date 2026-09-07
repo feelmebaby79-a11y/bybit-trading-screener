@@ -218,7 +218,6 @@ async function evaluateWatchlist() {
   };
 }
 
-// Diagnostic only.
 async function probeBybit(host, path) {
   const probeId = crypto.randomUUID();
   const url = new URL(host + path);
