@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 1,
-  "updated_at": "2026-09-07T02:30:00Z",
+  "updated_at": "2026-09-07T05:13:00Z",
   "policy": {
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
@@ -45,13 +45,13 @@
     {
       "symbol": "PUMPFUNUSDT",
       "direction": "SHORT",
-      "score": 73,
-      "poi_low": 0.0040,
-      "poi_high": 0.00407,
-      "status": "ACTIVE",
-      "trigger_model": "buy-side sweep -> bearish MSS/CHoCH + displacement -> bearish FVG/OB retracement",
-      "note": "Today primary SHORT watch; no market chase",
-      "updated_at": "2026-09-07T02:30:00Z"
+      "score": 72,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "PENDING_POI",
+      "trigger_model": "buy-side sweep -> bearish MSS/CHoCH + displacement -> bearish FVG/validated OB retracement",
+      "note": "Previous 0.004000-0.004070 POI invalidated after price broke above prior structural invalidation; wait for a newly validated premium POI and bearish trigger. No market chase.",
+      "updated_at": "2026-09-07T05:13:00Z"
     }
   ]
 }
