@@ -1,4 +1,5 @@
 // Strict ICT entry-trigger detector. Input candles must be CLOSED and oldest -> newest.
+// POI is defined from 1H/15m context; entry confirmation is evaluated on CLOSED 5m candles only.
 // This module deliberately does not treat POI arrival, a sweep, or MSS alone as an entry.
 
 function finite(v){return Number.isFinite(Number(v));}
@@ -96,11 +97,8 @@ function findSetup(candles,item,tf){
   return {ready:false,stage:'WAIT_RETRACE',tf,sweep,mss,zones:zones.slice(-3)};
 }
 
-export function evaluateEntryTrigger({candles1m,candles5m,item}){
+export function evaluateEntryTrigger({candles5m,item}){
   if(!item||!['LONG','SHORT'].includes(item.direction)||item.poi_low==null||item.poi_high==null)return {ready:false,stage:'INVALID_ITEM'};
   const r5=findSetup(candles5m,item,'5m');
-  const r1=findSetup(candles1m,item,'1m');
-  // 5m confirmation is preferred. 1m can trigger only after its own complete strict sequence.
-  const chosen=r5.ready?r5:r1.ready?r1:null;
-  return {ready:!!chosen,stage:chosen?'ENTRY_CANDIDATE':`5m:${r5.stage}|1m:${r1.stage}`,trigger:chosen,diagnostics:{m5:r5,m1:r1}};
+  return {ready:r5.ready,stage:r5.ready?'ENTRY_CANDIDATE':`5m:${r5.stage}`,trigger:r5.ready?r5:null,diagnostics:{m5:r5}};
 }
