@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "version": 1,
+  "updated_at": "2026-09-07T02:30:00Z",
+  "policy": {
+    "no_retrace_no_trade": true,
+    "poi_arrival_is_entry": false,
+    "entry_model": "HTF POI -> liquidity sweep -> MSS/CHoCH + displacement -> FVG/validated OB retracement",
+    "score_scale": 100
+  },
+  "items": [
+    {
+      "symbol": "TIAUSDT",
+      "direction": "LONG",
+      "score": 86,
+      "poi_low": 0.4260,
+      "poi_high": 0.4290,
+      "status": "ACTIVE",
+      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "note": "Today primary LONG watch; no market chase",
+      "updated_at": "2026-09-07T02:30:00Z"
+    },
+    {
+      "symbol": "MUUSDT",
+      "direction": "LONG",
+      "score": 84,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "PENDING_POI",
+      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "note": "Candidate retained; exact POI must be validated from raw 5TF before activation",
+      "updated_at": "2026-09-07T02:30:00Z"
+    },
+    {
+      "symbol": "CRCLUSDT",
+      "direction": "LONG",
+      "score": 82,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "PENDING_POI",
+      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "note": "Candidate retained; exact POI must be validated from raw 5TF before activation",
+      "updated_at": "2026-09-07T02:30:00Z"
+    },
+    {
+      "symbol": "PUMPFUNUSDT",
+      "direction": "SHORT",
+      "score": 73,
+      "poi_low": 0.0040,
+      "poi_high": 0.00407,
+      "status": "ACTIVE",
+      "trigger_model": "buy-side sweep -> bearish MSS/CHoCH + displacement -> bearish FVG/OB retracement",
+      "note": "Today primary SHORT watch; no market chase",
+      "updated_at": "2026-09-07T02:30:00Z"
+    }
+  ]
+}
