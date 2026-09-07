@@ -1,8 +1,11 @@
 {
   "name": "bybit-trading-screener",
-  "main": "worker.js",
+  "main": "worker_realtime.js",
   "compatibility_date": "2026-09-02",
   "placement": {
     "region": "aws:ap-northeast-1"
+  },
+  "triggers": {
+    "crons": ["* * * * *"]
   }
 }
