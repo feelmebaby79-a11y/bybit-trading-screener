@@ -80,7 +80,6 @@ async function fetchOpenPositions(env) {
   });
 
   const data = await response.json();
-
   if (!response.ok) throw new Error(`Bybit HTTP ${response.status}`);
   if (data.retCode !== 0) throw new Error(`Bybit ${data.retCode}: ${data.retMsg}`);
 
@@ -127,9 +126,7 @@ async function fetchKlines(symbol, interval, limit = 200) {
   apiUrl.searchParams.set("interval", interval);
   apiUrl.searchParams.set("limit", String(limit));
 
-  const response = await fetch(apiUrl.toString(), {
-    headers: { accept: "application/json" },
-  });
+  const response = await fetch(apiUrl.toString(), { headers: { accept: "application/json" } });
   if (!response.ok) throw new Error(`Bybit HTTP ${response.status}`);
   const data = await response.json();
   if (data.retCode !== 0) throw new Error(`Bybit: ${data.retMsg}`);
@@ -194,13 +191,12 @@ async function evaluateWatchlist() {
       const last = await fetchLastPrice(item.symbol);
       const low = Math.min(item.poi_low, item.poi_high);
       const high = Math.max(item.poi_low, item.poi_high);
-      const inPoi = last >= low && last <= high;
       results.push({
         ...item,
         ok: true,
         monitoring: true,
         last,
-        in_poi: inPoi,
+        in_poi: last >= low && last <= high,
         checked_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -305,8 +301,7 @@ export default {
       }
 
       if (request.method === "GET" && incoming.pathname === "/check-watchlist") {
-        const result = await evaluateWatchlist();
-        return json(result);
+        return json(await evaluateWatchlist());
       }
 
       if (request.method === "GET" && incoming.pathname === "/run-scan") {
