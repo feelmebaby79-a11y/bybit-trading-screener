@@ -1,11 +1,13 @@
 {
   "ok": true,
-  "version": 1,
-  "updated_at": "2026-09-07T06:06:00Z",
+  "version": 2,
+  "updated_at": "2026-09-07T08:17:00Z",
   "policy": {
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
-    "entry_model": "HTF POI -> liquidity sweep -> MSS/CHoCH + displacement -> FVG/validated OB retracement",
+    "poi_timeframes": ["1H", "15m"],
+    "entry_timeframe": "5m",
+    "entry_model": "1H/15m POI -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m FVG/validated OB retracement",
     "score_scale": 100
   },
   "items": [
@@ -16,9 +18,9 @@
       "poi_low": 0.4260,
       "poi_high": 0.4290,
       "status": "ACTIVE",
-      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
       "note": "Today primary LONG watch; no market chase",
-      "updated_at": "2026-09-07T02:30:00Z"
+      "updated_at": "2026-09-07T08:17:00Z"
     },
     {
       "symbol": "MUUSDT",
@@ -27,9 +29,9 @@
       "poi_low": null,
       "poi_high": null,
       "status": "PENDING_POI",
-      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
-      "note": "Candidate retained; exact POI must be validated from raw 5TF before activation",
-      "updated_at": "2026-09-07T02:30:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "note": "Candidate retained; exact POI must be validated from 1H/15m before activation",
+      "updated_at": "2026-09-07T08:17:00Z"
     },
     {
       "symbol": "CRCLUSDT",
@@ -38,9 +40,9 @@
       "poi_low": null,
       "poi_high": null,
       "status": "PENDING_POI",
-      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
-      "note": "Candidate retained; exact POI must be validated from raw 5TF before activation",
-      "updated_at": "2026-09-07T02:30:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "note": "Candidate retained; exact POI must be validated from 1H/15m before activation",
+      "updated_at": "2026-09-07T08:17:00Z"
     },
     {
       "symbol": "PUMPFUNUSDT",
@@ -49,9 +51,9 @@
       "poi_low": null,
       "poi_high": null,
       "status": "PENDING_POI",
-      "trigger_model": "buy-side sweep -> bearish MSS/CHoCH + displacement -> bearish FVG/validated OB retracement",
-      "note": "Previous 0.004000-0.004070 POI invalidated after price broke above prior structural invalidation; wait for a newly validated premium POI and bearish trigger. No market chase.",
-      "updated_at": "2026-09-07T05:13:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | buy-side sweep -> bearish MSS/CHoCH + displacement -> bearish FVG/validated OB retracement",
+      "note": "Previous 0.004000-0.004070 POI invalidated after price broke above prior structural invalidation; wait for a newly validated 1H/15m premium POI and bearish trigger. No market chase.",
+      "updated_at": "2026-09-07T08:17:00Z"
     },
     {
       "symbol": "ZROUSDT",
@@ -60,9 +62,9 @@
       "poi_low": 1.1073,
       "poi_high": 1.1196,
       "status": "ACTIVE",
-      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement",
-      "note": "Primary ZRO LONG POI from latest 5TF review. POI arrival is alert only, not entry; no market chase.",
-      "updated_at": "2026-09-07T06:06:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
+      "note": "Primary ZRO LONG POI from latest review. POI arrival is alert only, not entry; no market chase.",
+      "updated_at": "2026-09-07T08:17:00Z"
     }
   ]
 }
