@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 1,
-  "updated_at": "2026-09-07T05:13:00Z",
+  "updated_at": "2026-09-07T06:06:00Z",
   "policy": {
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
@@ -52,6 +52,17 @@
       "trigger_model": "buy-side sweep -> bearish MSS/CHoCH + displacement -> bearish FVG/validated OB retracement",
       "note": "Previous 0.004000-0.004070 POI invalidated after price broke above prior structural invalidation; wait for a newly validated premium POI and bearish trigger. No market chase.",
       "updated_at": "2026-09-07T05:13:00Z"
+    },
+    {
+      "symbol": "ZROUSDT",
+      "direction": "LONG",
+      "score": 82,
+      "poi_low": 1.1073,
+      "poi_high": 1.1196,
+      "status": "ACTIVE",
+      "trigger_model": "sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement",
+      "note": "Primary ZRO LONG POI from latest 5TF review. POI arrival is alert only, not entry; no market chase.",
+      "updated_at": "2026-09-07T06:06:00Z"
     }
   ]
 }
