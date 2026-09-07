@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 2,
-  "updated_at": "2026-09-07T08:17:00Z",
+  "updated_at": "2026-09-07T08:39:00Z",
   "policy": {
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
@@ -17,10 +17,10 @@
       "score": 86,
       "poi_low": 0.4260,
       "poi_high": 0.4290,
-      "status": "ACTIVE",
+      "status": "PAUSED_REVIEW",
       "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/OB retracement",
-      "note": "Today primary LONG watch; no market chase",
-      "updated_at": "2026-09-07T08:17:00Z"
+      "note": "Paused after repeated ENTRY alerts; trigger semantics under review. No new TIA alert until revalidated.",
+      "updated_at": "2026-09-07T08:39:00Z"
     },
     {
       "symbol": "MUUSDT",
