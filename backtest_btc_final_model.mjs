@@ -1,6 +1,6 @@
 import { evaluateEntryTrigger } from './entry_trigger.js';
 
-const BASE='https://api.bybit.com';
+const BASE='https://api.bytick.com';
 const SYMBOL='BTCUSDT';
 const DAY=86400000;
 const TFMS={'5':300000,'15':900000,'60':3600000};
@@ -11,7 +11,7 @@ async function fetchKlines(interval,start,end){
   while(cursor>=start){
     const u=new URL(BASE+'/v5/market/kline');
     u.searchParams.set('category','linear');u.searchParams.set('symbol',SYMBOL);u.searchParams.set('interval',interval);u.searchParams.set('limit','1000');u.searchParams.set('end',String(cursor));
-    const r=await fetch(u,{headers:{accept:'application/json'}}); if(!r.ok) throw new Error(`HTTP ${r.status} ${interval}`);
+    const r=await fetch(u,{headers:{accept:'application/json','user-agent':'Mozilla/5.0'}}); if(!r.ok) throw new Error(`HTTP ${r.status} ${interval}`);
     const d=await r.json(); if(d.retCode!==0) throw new Error(`Bybit ${d.retCode} ${d.retMsg}`);
     const list=(d.result?.list||[]).map(x=>({start:+x[0],open:+x[1],high:+x[2],low:+x[3],close:+x[4]}));
     if(!list.length) break;
