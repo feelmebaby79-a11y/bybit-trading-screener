@@ -1,7 +1,7 @@
 // Strict ICT entry-trigger detector. Input candles must be CLOSED and oldest -> newest.
 // POI is defined from 1H/15m context; entry confirmation is evaluated on CLOSED 5m candles only.
 // Safety policy: one POI-arrival cycle -> one first FVG retracement candidate.
-// ENTRY is blocked when live reward:risk to the nearest meaningful expansion liquidity is below minimum_rr.
+// ENTRY is blocked unless live reward:risk to a verified meaningful expansion-liquidity target is >= minimum_rr.
 
 function finite(v){return Number.isFinite(Number(v));}
 function n(v){return Number(v);}
@@ -98,12 +98,13 @@ function findSetup(candles,item,tf){
     const entry=(z.low+z.high)/2,sl=sweep.extreme,risk=Math.abs(entry-sl);if(risk<=0)continue;
 
     const target=nearestExpansionLiquidity(pv,entry,dir,firstTouchI);
-    const roomR=target?Math.abs(target.price-entry)/risk:null;
-    if(target&&roomR<minimumRR)return{ready:false,stage:'RR_BLOCKED',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,entry_mid:entry,structural_sl:sl,nearest_liquidity:target.price,live_rr:roomR,expansion_room_r:roomR,minimum_rr:minimumRR};
+    if(!target)return{ready:false,stage:'RR_BLOCKED_NO_TARGET',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,entry_mid:entry,structural_sl:sl,nearest_liquidity:null,live_rr:null,expansion_room_r:null,minimum_rr:minimumRR};
+    const roomR=Math.abs(target.price-entry)/risk;
+    if(!Number.isFinite(roomR)||roomR<minimumRR)return{ready:false,stage:'RR_BLOCKED',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,entry_mid:entry,structural_sl:sl,nearest_liquidity:target.price,live_rr:roomR,expansion_room_r:roomR,minimum_rr:minimumRR};
 
     const tp1=dir==='LONG'?entry+risk*2:entry-risk*2,tp2=dir==='LONG'?entry+risk*3:entry-risk*3;
     const cycleId=`${item.symbol}:${dir}:${tf}:${cs[poiI].start}:${sweep.start}:${mss.start}`;
-    return{ready:true,stage:'ENTRY_CANDIDATE',tf,direction:dir,score:item.score,poi:[lo,hi],poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,retrace_start:c.start,entry_zone:[z.low,z.high],entry_mid:entry,structural_sl:sl,tp1,tp2,rr_tp1:2,rr_tp2:3,nearest_liquidity:target?.price??null,live_rr:roomR??2,expansion_room_r:roomR,minimum_rr:minimumRR,cycle_id:cycleId,event_id:cycleId};
+    return{ready:true,stage:'ENTRY_CANDIDATE',tf,direction:dir,score:item.score,poi:[lo,hi],poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,retrace_start:c.start,entry_zone:[z.low,z.high],entry_mid:entry,structural_sl:sl,tp1,tp2,rr_tp1:2,rr_tp2:3,nearest_liquidity:target.price,live_rr:roomR,expansion_room_r:roomR,minimum_rr:minimumRR,cycle_id:cycleId,event_id:cycleId};
   }
   return{ready:false,stage:'WAIT_FIRST_FVG_RETRACE',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zones:zones.slice(-3)};
 }
