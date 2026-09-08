@@ -6,6 +6,8 @@ on:
     paths:
       - 'worker.js'
       - 'worker_realtime.js'
+      - 'worker_with_oi.js'
+      - 'oi_surge_alert.js'
       - 'entry_trigger.js'
       - 'wrangler.jsonc'
       - '.github/workflows/deploy-worker.yml'
