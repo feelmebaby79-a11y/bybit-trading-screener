@@ -1,0 +1,40 @@
+name: Realtime POI Snapshot
+
+on:
+  push:
+    paths:
+      - 'realtime-trigger.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch realtime watch
+        run: |
+          mkdir -p latest
+          curl --fail --silent --show-error \
+            https://bybit-trading-screener.feelmebaby79.workers.dev/realtime-watch \
+            -o latest/realtime_watch.json
+          python -m json.tool latest/realtime_watch.json >/dev/null
+
+      - name: Save snapshot
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add latest/realtime_watch.json
+          if git diff --cached --quiet; then
+            echo "No snapshot changes"
+          else
+            git commit -m "Update realtime POI snapshot"
+            git push origin HEAD:main
+          fi
