@@ -1,8 +1,9 @@
 {
   "ok": true,
-  "version": 5,
-  "updated_at": "2026-09-08T01:35:00Z",
+  "version": 6,
+  "updated_at": "2026-09-08T11:55:00Z",
   "policy": {
+    "mode": "CURRENT_POSITIONS_ONLY",
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
     "poi_timeframes": ["1H", "15m"],
@@ -10,70 +11,44 @@
     "entry_model": "1H/15m POI -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m FVG/validated OB retracement -> live RR >= 1.5",
     "minimum_rr": 1.5,
     "score_scale": 100,
-    "intraday_retention": "KEEP_UNTIL_NEXT_DAILY_RESET",
-    "daily_reset": "09:00 KST fresh scan recommendations replace the prior-day watchlist",
-    "intraday_additions": "New qualifying recommendations may be appended during the day; existing same-day watchlist items are not removed solely because a later scan ranking changes"
+    "note": "Temporary defensive mode requested by user: watchlist contains current known open positions only. No new recommendation symbols are monitored until explicitly changed."
   },
   "items": [
     {
-      "symbol": "NEARUSDT",
+      "symbol": "VANAUSDT",
       "direction": "LONG",
-      "score": 83,
-      "scan_rr": 1.7222,
+      "score": null,
+      "scan_rr": null,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "09:54 KST recommendation retained for the full trading day under intraday retention policy.",
-      "updated_at": "2026-09-08T00:55:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | monitor structure for existing LONG position; do not treat as a new-entry recommendation",
+      "note": "Existing position monitoring. Known entry 0.9805, isolated 3x. Position-management mode; no averaging/add signal.",
+      "updated_at": "2026-09-08T11:55:00Z"
     },
     {
       "symbol": "MSTRUSDT",
       "direction": "LONG",
-      "score": 81,
-      "scan_rr": 1.5852,
+      "score": null,
+      "scan_rr": null,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "09:54 KST recommendation retained for the full trading day. Actual ENTRY still requires live RR >= 1.5 even if later scan RR deteriorates.",
-      "updated_at": "2026-09-08T00:55:00Z"
-    },
-    {
-      "symbol": "LTCUSDT",
-      "direction": "LONG",
-      "score": 82,
-      "scan_rr": 6.3898,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "Retained from 09:54 recommendation; 10:34 fresh scan still qualifies. 4H premium/1H discount means no chase and actual ENTRY RR must be recalculated.",
-      "updated_at": "2026-09-08T01:35:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | monitor structure for existing LONG position; do not treat as a new-entry recommendation",
+      "note": "Existing position monitoring. Known entry 141.80, isolated 2x. Position-management mode.",
+      "updated_at": "2026-09-08T11:55:00Z"
     },
     {
       "symbol": "ASTERUSDT",
       "direction": "LONG",
-      "score": 86,
-      "scan_rr": 1.8466,
+      "score": null,
+      "scan_rr": null,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "10:34 KST fresh scan intraday addition: 1D/4H/15m bullish, 4H equilibrium, 1H discount, 15m MSS, scan RR 1.85. Retain until next daily reset.",
-      "updated_at": "2026-09-08T01:35:00Z"
-    },
-    {
-      "symbol": "FILUSDT",
-      "direction": "LONG",
-      "score": 76,
-      "scan_rr": 1.584,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "10:34 KST fresh scan intraday addition: 1D/4H/1H/15m bullish and scan RR 1.58, but 4H/1H premium so retracement is mandatory. Retain until next daily reset.",
-      "updated_at": "2026-09-08T01:35:00Z"
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | monitor structure for existing LONG position; do not treat as a new-entry recommendation",
+      "note": "Existing position monitoring. Known entry 0.7730, isolated 3x. Previously discussed structural invalidation 0.7536; do not average down.",
+      "updated_at": "2026-09-08T11:55:00Z"
     }
   ]
 }
