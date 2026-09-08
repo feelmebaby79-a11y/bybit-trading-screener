@@ -13,17 +13,17 @@ permissions:
 jobs:
   backtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Prepare ESM entry module
         run: |
           cp entry_trigger.js entry_trigger.mjs
           sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" backtest_btc_final_model.mjs
-      - name: Download BTCUSDT 5m history
+      - name: Download BTCUSDT 5m six-month history
         run: |
           : > btc5m.csv
-          for i in $(seq 0 39); do
+          for i in $(seq 0 195); do
             d=$(date -u -d "-$i day" +%F)
             u="https://data.binance.vision/data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-${d}.zip"
             if curl -fsSL "$u" -o /tmp/k.zip; then
@@ -33,5 +33,5 @@ jobs:
           done
           test -s btc5m.csv
           wc -l btc5m.csv
-      - name: Run 30-day BTCUSDT backtest
+      - name: Run six-month BTCUSDT backtest
         run: node backtest_btc_final_model.mjs
