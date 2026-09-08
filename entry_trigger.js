@@ -1,7 +1,7 @@
 // Strict ICT entry-trigger detector. Input candles must be CLOSED and oldest -> newest.
 // POI is defined from 1H/15m context; entry confirmation is evaluated on CLOSED 5m candles only.
 // Safety policy: one POI-arrival cycle -> one first FVG retracement candidate.
-// New safety gates: do not enter early into nearby opposing liquidity; require >=2R expansion room.
+// ENTRY is blocked when live reward:risk to the nearest meaningful expansion liquidity is below minimum_rr.
 
 function finite(v){return Number.isFinite(Number(v));}
 function n(v){return Number(v);}
@@ -46,8 +46,6 @@ function mostRecentPoiArrival(cs,lo,hi,lookback=80){
   return arrival;
 }
 
-// Find the nearest meaningful untouched 5m swing liquidity in the intended expansion direction.
-// LONG targets prior swing highs above entry; SHORT targets prior swing lows below entry.
 function nearestExpansionLiquidity(pv,entry,dir,fromI){
   const pool=(dir==='LONG'?pv.highs:pv.lows).filter(p=>p.i<fromI&&(dir==='LONG'?p.price>entry:p.price<entry));
   if(!pool.length)return null;
@@ -59,7 +57,7 @@ function findSetup(candles,item,tf){
   if(!Array.isArray(candles)||candles.length<30)return{ready:false,stage:'INSUFFICIENT_DATA',tf};
   const cs=candles.map(c=>({start:n(c.start),open:n(c.open),high:n(c.high),low:n(c.low),close:n(c.close)})).filter(c=>Object.values(c).every(finite));
   if(cs.length<30)return{ready:false,stage:'INSUFFICIENT_DATA',tf};
-  const dir=item.direction,lo=n(item.poi_low),hi=n(item.poi_high),poiI=mostRecentPoiArrival(cs,lo,hi,80);
+  const dir=item.direction,lo=n(item.poi_low),hi=n(item.poi_high),minimumRR=finite(item.minimum_rr)?Math.max(n(item.minimum_rr),0):1.5,poiI=mostRecentPoiArrival(cs,lo,hi,80);
   if(poiI===null)return{ready:false,stage:'WAIT_POI_ARRIVAL',tf};
   const pv=pivots(cs,2,2);let sweep=null;
   if(dir==='LONG'){
@@ -83,7 +81,6 @@ function findSetup(candles,item,tf){
   }
   if(!mss)return{ready:false,stage:'WAIT_MSS_DISPLACEMENT',tf,poi_arrival_start:cs[poiI].start,sweep,structure_level:opposing.price};
 
-  // Failed displacement protection: after MSS, immediate acceptance back through the broken structure cancels the setup.
   const postMss=cs.slice(mss.i+1,Math.min(cs.length,mss.i+3));
   const failed=postMss.some(c=>dir==='LONG'?c.close<mss.level:c.close>mss.level);
   if(failed)return{ready:false,stage:'MSS_FAILED_REACCEPTANCE',tf,poi_arrival_start:cs[poiI].start,sweep,mss};
@@ -100,16 +97,13 @@ function findSetup(candles,item,tf){
     if(invalid)continue;
     const entry=(z.low+z.high)/2,sl=sweep.extreme,risk=Math.abs(entry-sl);if(risk<=0)continue;
 
-    // Liquidity/expansion gate: a valid pattern is not enough if the nearest opposing liquidity leaves <2R room.
     const target=nearestExpansionLiquidity(pv,entry,dir,firstTouchI);
-    if(target){
-      const room=Math.abs(target.price-entry),roomR=room/risk;
-      if(roomR<2)return{ready:false,stage:'WAIT_LIQUIDITY_CLEARANCE',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,entry_mid:entry,structural_sl:sl,nearest_liquidity:target.price,expansion_room_r:roomR};
-    }
+    const roomR=target?Math.abs(target.price-entry)/risk:null;
+    if(target&&roomR<minimumRR)return{ready:false,stage:'RR_BLOCKED',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,entry_mid:entry,structural_sl:sl,nearest_liquidity:target.price,live_rr:roomR,expansion_room_r:roomR,minimum_rr:minimumRR};
 
     const tp1=dir==='LONG'?entry+risk*2:entry-risk*2,tp2=dir==='LONG'?entry+risk*3:entry-risk*3;
     const cycleId=`${item.symbol}:${dir}:${tf}:${cs[poiI].start}:${sweep.start}:${mss.start}`;
-    return{ready:true,stage:'ENTRY_CANDIDATE',tf,direction:dir,score:item.score,poi:[lo,hi],poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,retrace_start:c.start,entry_zone:[z.low,z.high],entry_mid:entry,structural_sl:sl,tp1,tp2,rr_tp1:2,rr_tp2:3,nearest_liquidity:target?.price??null,expansion_room_r:target?Math.abs(target.price-entry)/risk:null,cycle_id:cycleId,event_id:cycleId};
+    return{ready:true,stage:'ENTRY_CANDIDATE',tf,direction:dir,score:item.score,poi:[lo,hi],poi_arrival_start:cs[poiI].start,sweep,mss,zone:z,retrace_start:c.start,entry_zone:[z.low,z.high],entry_mid:entry,structural_sl:sl,tp1,tp2,rr_tp1:2,rr_tp2:3,nearest_liquidity:target?.price??null,live_rr:roomR??2,expansion_room_r:roomR,minimum_rr:minimumRR,cycle_id:cycleId,event_id:cycleId};
   }
   return{ready:false,stage:'WAIT_FIRST_FVG_RETRACE',tf,poi_arrival_start:cs[poiI].start,sweep,mss,zones:zones.slice(-3)};
 }
