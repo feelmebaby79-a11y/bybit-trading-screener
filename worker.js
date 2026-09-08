@@ -9,12 +9,14 @@ const ALLOWED_PATHS = new Set([
   "/v5/market/kline",
   "/v5/market/tickers",
   "/v5/market/instruments-info",
+  "/v5/market/open-interest",
 ]);
 
 const ALLOWED_PARAMS = new Set([
   "category",
   "symbol",
   "interval",
+  "intervalTime",
   "limit",
   "cursor",
 ]);
