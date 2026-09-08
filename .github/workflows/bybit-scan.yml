@@ -2,6 +2,9 @@ name: Bybit HTF LTF Scan
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scan-trigger.txt'
   schedule:
     # 매일 한국시간 오전 9시
     - cron: "0 0 * * *"
@@ -40,10 +43,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ============================================================
-      # TOP100 recommendation screener
-      # ============================================================
-
       - name: Run screener
         run: |
           python bybit_htf_ltf_screener.py \
@@ -51,14 +50,6 @@ jobs:
             --min-turnover 5000000 \
             --top 15 \
             --output scan_results.csv
-
-      # ============================================================
-      # Build latest scan
-      #
-      # - TOP100 = recommendation universe
-      # - Current Bybit positions = automatically detected
-      # - Held coins are tracked even when outside TOP100
-      # ============================================================
 
       - name: Build latest files
         env:
@@ -173,7 +164,6 @@ jobs:
               position_fetch_ok = True
               position_fetch_error = None
           except Exception as exc:
-              # Never substitute hardcoded positions when private lookup fails.
               position_symbols = []
               position_fetch_ok = False
               position_fetch_error = str(exc)
@@ -241,10 +231,6 @@ jobs:
               )
           PY
 
-      # ============================================================
-      # GitHub Pages
-      # ============================================================
-
       - name: Create Pages site
         run: |
           mkdir -p public/latest
@@ -274,10 +260,6 @@ jobs:
           </html>
           EOF
 
-      # ============================================================
-      # Save latest results
-      # ============================================================
-
       - name: Save latest results to repository
         run: |
           git config user.name "github-actions"
@@ -291,10 +273,6 @@ jobs:
             git commit -m "Update latest Bybit scan"
             git push origin HEAD:main
           fi
-
-      # ============================================================
-      # GitHub Pages deployment
-      # ============================================================
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
