@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "version": 4,
-  "updated_at": "2026-09-08T00:55:00Z",
+  "version": 5,
+  "updated_at": "2026-09-08T01:35:00Z",
   "policy": {
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
@@ -9,7 +9,10 @@
     "entry_timeframe": "5m",
     "entry_model": "1H/15m POI -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m FVG/validated OB retracement -> live RR >= 1.5",
     "minimum_rr": 1.5,
-    "score_scale": 100
+    "score_scale": 100,
+    "intraday_retention": "KEEP_UNTIL_NEXT_DAILY_RESET",
+    "daily_reset": "09:00 KST fresh scan recommendations replace the prior-day watchlist",
+    "intraday_additions": "New qualifying recommendations may be appended during the day; existing same-day watchlist items are not removed solely because a later scan ranking changes"
   },
   "items": [
     {
@@ -21,7 +24,7 @@
       "poi_high": null,
       "status": "ACTIVE",
       "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "09:54 KST fresh scan: 1D/4H/1H/15m bullish, HTF aligned, 15m MSS+displacement, RR 1.72. 4H premium so no chase; require POI retracement and live RR >=1.5.",
+      "note": "09:54 KST recommendation retained for the full trading day under intraday retention policy.",
       "updated_at": "2026-09-08T00:55:00Z"
     },
     {
@@ -33,20 +36,44 @@
       "poi_high": null,
       "status": "ACTIVE",
       "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "09:54 KST fresh scan: 1D/4H/1H/15m bullish, HTF aligned, 1H discount, RR 1.59. 4H premium means POI retracement mandatory; live RR must remain >=1.5.",
+      "note": "09:54 KST recommendation retained for the full trading day. Actual ENTRY still requires live RR >= 1.5 even if later scan RR deteriorates.",
       "updated_at": "2026-09-08T00:55:00Z"
     },
     {
       "symbol": "LTCUSDT",
       "direction": "LONG",
-      "score": 79,
-      "scan_rr": 7.72,
+      "score": 82,
+      "scan_rr": 6.3898,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
-      "note": "09:54 KST fresh scan: 1D/4H bullish, 15m bullish, HTF aligned, 1H discount, scan RR 7.72. 1H is range and 4H premium, so treat as conditional only and recalc RR at actual entry.",
-      "updated_at": "2026-09-08T00:55:00Z"
+      "note": "Retained from 09:54 recommendation; 10:34 fresh scan still qualifies. 4H premium/1H discount means no chase and actual ENTRY RR must be recalculated.",
+      "updated_at": "2026-09-08T01:35:00Z"
+    },
+    {
+      "symbol": "ASTERUSDT",
+      "direction": "LONG",
+      "score": 86,
+      "scan_rr": 1.8466,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
+      "note": "10:34 KST fresh scan intraday addition: 1D/4H/15m bullish, 4H equilibrium, 1H discount, 15m MSS, scan RR 1.85. Retain until next daily reset.",
+      "updated_at": "2026-09-08T01:35:00Z"
+    },
+    {
+      "symbol": "FILUSDT",
+      "direction": "LONG",
+      "score": 76,
+      "scan_rr": 1.584,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | sell-side sweep -> bullish MSS/CHoCH + displacement -> bullish FVG/validated OB retracement -> live RR >= 1.5",
+      "note": "10:34 KST fresh scan intraday addition: 1D/4H/1H/15m bullish and scan RR 1.58, but 4H/1H premium so retracement is mandatory. Retain until next daily reset.",
+      "updated_at": "2026-09-08T01:35:00Z"
     }
   ]
 }
