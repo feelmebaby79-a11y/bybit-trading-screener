@@ -20,5 +20,18 @@ jobs:
         run: |
           cp entry_trigger.js entry_trigger.mjs
           sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" backtest_btc_final_model.mjs
+      - name: Download BTCUSDT 5m history
+        run: |
+          : > btc5m.csv
+          for i in $(seq 0 39); do
+            d=$(date -u -d "-$i day" +%F)
+            u="https://data.binance.vision/data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-${d}.zip"
+            if curl -fsSL "$u" -o /tmp/k.zip; then
+              unzip -p /tmp/k.zip >> btc5m.csv
+              printf '\n' >> btc5m.csv
+            fi
+          done
+          test -s btc5m.csv
+          wc -l btc5m.csv
       - name: Run 30-day BTCUSDT backtest
         run: node backtest_btc_final_model.mjs
