@@ -1,0 +1,24 @@
+name: BTC Final Model Backtest
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'backtest_btc_final_model.mjs'
+      - '.github/workflows/backtest-btc-final.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare ESM entry module
+        run: |
+          cp entry_trigger.js entry_trigger.mjs
+          sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" backtest_btc_final_model.mjs
+      - name: Run 30-day BTCUSDT backtest
+        run: node backtest_btc_final_model.mjs
