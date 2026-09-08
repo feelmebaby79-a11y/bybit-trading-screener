@@ -1,0 +1,72 @@
+const BYBIT_BASE = "https://api.bybit.com";
+const SCAN_CSV = "https://raw.githubusercontent.com/feelmebaby79-a11y/bybit-trading-screener/main/latest/scan_results.csv";
+const STATE_TTL_SECONDS = 60 * 60 * 24 * 2;
+
+function cacheRequest(key){return new Request(`https://oi-alert-state.invalid/${encodeURIComponent(key)}`);}
+async function stateHas(env,key){
+  if(env.ENTRY_DEDUPE?.get) return (await env.ENTRY_DEDUPE.get(key)) !== null;
+  try{return !!(await caches.default.match(cacheRequest(key)));}catch{return false;}
+}
+async function statePut(env,key){
+  if(env.ENTRY_DEDUPE?.put){await env.ENTRY_DEDUPE.put(key,"1",{expirationTtl:STATE_TTL_SECONDS});return;}
+  try{await caches.default.put(cacheRequest(key),new Response("1",{headers:{"cache-control":`max-age=${STATE_TTL_SECONDS}`}}));}catch{}
+}
+async function bybit(path,params){
+  const u=new URL(BYBIT_BASE+path); Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,String(v)));
+  const r=await fetch(u,{headers:{accept:"application/json"}}); if(!r.ok) throw new Error(`Bybit HTTP ${r.status}`);
+  const d=await r.json(); if(d.retCode!==0) throw new Error(`Bybit ${d.retCode}: ${d.retMsg}`); return d.result||{};
+}
+async function fetchUniverse(){
+  const r=await fetch(SCAN_CSV,{headers:{accept:"text/csv","user-agent":"bybit-oi-surge-watch"}}); if(!r.ok) throw new Error(`scan csv HTTP ${r.status}`);
+  const text=await r.text(); const lines=text.replace(/^\uFEFF/,"").split(/\r?\n/).filter(Boolean); if(lines.length<2) return [];
+  const header=lines[0].split(","); const idx=header.indexOf("symbol"); if(idx<0) return [];
+  return [...new Set(lines.slice(1).map(x=>x.split(",")[idx]?.trim().toUpperCase()).filter(x=>/^[A-Z0-9]{3,30}USDT$/.test(x)))];
+}
+async function fetchOi(symbol){
+  const rows=(await bybit("/v5/market/open-interest",{category:"linear",symbol,intervalTime:"15min",limit:20})).list||[];
+  const x=rows.map(r=>({t:Number(r.timestamp),v:Number(r.openInterest)})).filter(r=>Number.isFinite(r.t)&&Number.isFinite(r.v)).sort((a,b)=>a.t-b.t);
+  if(x.length<17) throw new Error("not enough OI history"); return x;
+}
+function change(rows,bars){const n=rows.at(-1)?.v,p=rows.at(-1-bars)?.v; return Number.isFinite(n)&&Number.isFinite(p)&&p>0?(n/p-1)*100:null;}
+async function priceChange1h(symbol){
+  const rows=(await bybit("/v5/market/kline",{category:"linear",symbol,interval:"15",limit:6})).list||[];
+  const x=rows.map(r=>({t:Number(r[0]),c:Number(r[4])})).filter(r=>Number.isFinite(r.t)&&Number.isFinite(r.c)).sort((a,b)=>a.t-b.t);
+  if(x.length<5) return null; const n=x.at(-1).c,p=x.at(-5).c; return p>0?(n/p-1)*100:null;
+}
+function classify(oi15,oi1h,oi4h){
+  const acceleration=oi15>0&&oi1h>0&&oi15*4>oi1h*1.2;
+  const persistent=oi15>0&&oi1h>0&&oi4h>0;
+  const surge=oi15>=5||oi1h>=10||oi4h>=20;
+  const early=persistent&&acceleration&&oi15>=3&&oi1h>=5;
+  if(surge) return {hit:true,level:"SURGE",acceleration,persistent};
+  if(early) return {hit:true,level:"ACCELERATION",acceleration,persistent};
+  return {hit:false,level:null,acceleration,persistent};
+}
+async function sendTelegram(env,message){
+  const token=String(env.TELEGRAM_BOT_TOKEN||"").trim(),chatId=String(env.TELEGRAM_CHAT_ID||"").trim(); if(!token||!chatId) throw new Error("Telegram env missing");
+  const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({chat_id:chatId,text:message,parse_mode:"HTML",disable_web_page_preview:true})});
+  const d=await r.json(); if(!r.ok||d.ok!==true) throw new Error(`Telegram send failed ${r.status}`);
+}
+function fmt(v){return Number.isFinite(v)?`${v>=0?"+":""}${v.toFixed(2)}%`:"n/a";}
+function message(x){
+  const icon=x.level==="SURGE"?"🚨":"🔥"; const title=x.level==="SURGE"?"OI 급등 감지":"OI 증가 가속 감지";
+  const direction=Number.isFinite(x.price1h)?(x.price1h>0?"가격 상승 동반 → 신규 LONG 유입 가능성":x.price1h<0?"가격 하락 동반 → 신규 SHORT 유입 가능성":"방향 확인 필요"):"가격 방향 확인 필요";
+  return `${icon} <b>${title}</b>\n<b>${x.symbol}</b>\nOI 15m: <b>${fmt(x.oi15)}</b>\nOI 1H: <b>${fmt(x.oi1h)}</b>\nOI 4H: <b>${fmt(x.oi4h)}</b>\nPrice 1H: <b>${fmt(x.price1h)}</b>\n지속 증가: <b>${x.persistent?"YES":"NO"}</b> / 가속: <b>${x.acceleration?"YES":"NO"}</b>\n\n${direction}\n<b>OI 알림은 ENTRY 신호가 아닙니다.</b> BTC 상대강도·HTF 구조·POI·5m ENTRY·R:R을 별도 확인합니다.`;
+}
+function bucket(symbol,minute){let h=0; for(let i=0;i<symbol.length;i++) h=(h*31+symbol.charCodeAt(i))>>>0; return h%5===minute%5;}
+export async function runScheduledOiSurgeWatch(env,scheduledTime=Date.now()){
+  const when=new Date(Number.isFinite(Number(scheduledTime))?Number(scheduledTime):Date.now()); const minute=when.getUTCMinutes();
+  const universe=await fetchUniverse(); const symbols=universe.filter(s=>bucket(s,minute)); const hits=[],sent=[],errors=[];
+  for(const symbol of symbols){
+    try{
+      const rows=await fetchOi(symbol),oi15=change(rows,1),oi1h=change(rows,4),oi4h=change(rows,16),c=classify(oi15,oi1h,oi4h);
+      if(!c.hit) continue;
+      const price1h=await priceChange1h(symbol); const x={symbol,oi15,oi1h,oi4h,price1h,...c}; hits.push(x);
+      const hour=when.toISOString().slice(0,13); const key=`oi-alert:${symbol}:${c.level}:${hour}`;
+      if(await stateHas(env,key)) continue;
+      await sendTelegram(env,message(x)); await statePut(env,key); sent.push(x);
+    }catch(e){errors.push({symbol,error:e?.message||String(e)});}
+  }
+  console.log(JSON.stringify({event:"oi_surge_cron",checked:symbols.length,hits:hits.length,sent:sent.map(x=>x.symbol),errors:errors.slice(0,10)}));
+  return {ok:true,generated_at:new Date().toISOString(),checked_symbols:symbols.length,hits,telegram_sent:sent,errors};
+}
