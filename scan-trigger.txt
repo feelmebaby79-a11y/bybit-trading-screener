@@ -1,1 +1,1 @@
-2026-09-08T23:29:00Z fresh scan for 2026-09-09 morning briefing
+2026-09-08T23:42:00Z fresh scan after OI proxy fix for 2026-09-09 morning briefing
