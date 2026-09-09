@@ -16,10 +16,13 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Prepare ESM entry module
+      - name: Prepare optimized ESM backtest
         run: |
           cp entry_trigger.js entry_trigger.mjs
           sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" backtest_btc_2026_day_swing.mjs
+          sed -i 's/function asianLevels(all5,t,width)/function asianLevels(a15,t,width)/' backtest_btc_2026_day_swing.mjs
+          sed -i 's/const bars=all5.filter(c=>c.start>=asiaStart&&c.start<asiaEnd)/const bars=a15.filter(c=>c.start>=asiaStart\&\&c.start<asiaEnd)/' backtest_btc_2026_day_swing.mjs
+          sed -i 's/asianLevels(all5,t,w)/asianLevels(a15,t,w)/' backtest_btc_2026_day_swing.mjs
       - name: Download BTCUSDT 5m history with warmup
         run: |
           : > btc5m.csv
@@ -33,5 +36,5 @@ jobs:
           done
           test -s btc5m.csv
           wc -l btc5m.csv
-      - name: Run 2026 DAY and SWING backtest
+      - name: Run 2026 expanded DAY and SWING backtest
         run: node backtest_btc_2026_day_swing.mjs
