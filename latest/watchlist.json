@@ -1,54 +1,51 @@
 {
   "ok": true,
-  "version": 6,
-  "updated_at": "2026-09-08T11:55:00Z",
+  "version": 7,
+  "updated_at": "2026-09-08T23:59:28Z",
   "policy": {
-    "mode": "CURRENT_POSITIONS_ONLY",
+    "mode": "DAILY_RECOMMENDATIONS",
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
     "poi_timeframes": ["1H", "15m"],
     "entry_timeframe": "5m",
-    "entry_model": "1H/15m POI -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m FVG/validated OB retracement -> live RR >= 1.5",
+    "entry_model": "1H/15m POI -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m strict FVG/validated OB retracement -> live RR >= 1.5",
     "minimum_rr": 1.5,
     "score_scale": 100,
-    "note": "Temporary defensive mode requested by user: watchlist contains current known open positions only. No new recommendation symbols are monitored until explicitly changed."
+    "note": "Daily recommendation watchlist. ACTIVE symbols are monitored continuously; POI arrival is not entry. No retrace = no trade."
   },
   "items": [
     {
-      "symbol": "VANAUSDT",
+      "symbol": "SOPHUSDT",
       "direction": "LONG",
-      "score": null,
-      "scan_rr": null,
+      "score": 67,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | monitor structure for existing LONG position; do not treat as a new-entry recommendation",
-      "note": "Existing position monitoring. Known entry 0.9805, isolated 3x. Position-management mode; no averaging/add signal.",
-      "updated_at": "2026-09-08T11:55:00Z"
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict bullish FVG/validated OB retracement",
+      "note": "1D/4H bullish, 4H/1H discount, strong relative strength vs BTC. Current 5m entry trigger incomplete; wait for retracement.",
+      "updated_at": "2026-09-08T23:59:28Z"
     },
     {
-      "symbol": "MSTRUSDT",
+      "symbol": "FORMUSDT",
       "direction": "LONG",
-      "score": null,
-      "scan_rr": null,
+      "score": 66,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | monitor structure for existing LONG position; do not treat as a new-entry recommendation",
-      "note": "Existing position monitoring. Known entry 141.80, isolated 2x. Position-management mode.",
-      "updated_at": "2026-09-08T11:55:00Z"
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict bullish FVG/validated OB retracement",
+      "note": "1D/1H/15m bullish with strong relative strength and favorable scan RR, but 24h extension is large. No chase; monitor only for fresh POI retracement.",
+      "updated_at": "2026-09-08T23:59:28Z"
     },
     {
-      "symbol": "ASTERUSDT",
-      "direction": "LONG",
-      "score": null,
-      "scan_rr": null,
+      "symbol": "HBARUSDT",
+      "direction": "SHORT",
+      "score": 62,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "POI TF: 1H/15m | Entry TF: 5m | monitor structure for existing LONG position; do not treat as a new-entry recommendation",
-      "note": "Existing position monitoring. Known entry 0.7730, isolated 3x. Previously discussed structural invalidation 0.7536; do not average down.",
-      "updated_at": "2026-09-08T11:55:00Z"
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict bearish FVG/validated OB retracement",
+      "note": "1D/4H/1H bearish and weakening vs BTC. 1H location is discount, so do not chase downside; wait for rebound into a fresh premium-side POI and 5m confirmation.",
+      "updated_at": "2026-09-08T23:59:28Z"
     }
   ]
 }
