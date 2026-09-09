@@ -9,41 +9,74 @@ on:
 
 jobs:
   download:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - "1000PEPEUSDT WIFUSDT 1000BONKUSDT 1000SHIBUSDT 1000FLOKIUSDT TRUMPUSDT"
+          - "PENGUUSDT PNUTUSDT NEIROUSDT 1000SATSUSDT 1000RATSUSDT MEMEUSDT"
+          - "BOMEUSDT BRETTUSDT POPCATUSDT MEWUSDT TURBOUSDT MOODENGUSDT"
+          - "ACTUSDT GOATUSDT FARTCOINUSDT TOSHIUSDT KAITOUSDT VIRTUALUSDT"
+          - "SUIUSDT ENAUSDT WLDUSDT APTUSDT SEIUSDT TIAUSDT"
+          - "JUPUSDT ONDOUSDT PYTHUSDT NOTUSDT TONUSDT HMSTRUSDT"
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 90
     steps:
-      - name: Download expanded Binance futures OI and price data
+      - name: Download monthly Binance futures OI and price data
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p data/oi data/price
-          SYMBOLS="1000PEPEUSDT WIFUSDT 1000BONKUSDT 1000SHIBUSDT 1000FLOKIUSDT TRUMPUSDT PENGUUSDT PNUTUSDT NEIROUSDT 1000SATSUSDT 1000RATSUSDT MEMEUSDT BOMEUSDT BRETTUSDT POPCATUSDT MEWUSDT TURBOUSDT MOODENGUSDT ACTUSDT GOATUSDT FARTCOINUSDT TOSHIUSDT KAITOUSDT VIRTUALUSDT SUIUSDT ENAUSDT WLDUSDT APTUSDT SEIUSDT TIAUSDT JUPUSDT ONDOUSDT PYTHUSDT NOTUSDT TONUSDT HMSTRUSDT"
-          START=2025-01-01
-          END=2026-08-31
-          d="$START"
-          while [[ "$d" < "$END" || "$d" == "$END" ]]; do
-            for s in $SYMBOLS; do
-              m="https://data.binance.vision/data/futures/um/daily/metrics/${s}/${s}-metrics-${d}.zip"
-              k="https://data.binance.vision/data/futures/um/daily/klines/${s}/5m/${s}-5m-${d}.zip"
-              if curl --connect-timeout 5 --max-time 20 -fsSL "$m" -o /tmp/m.zip 2>/dev/null; then unzip -p /tmp/m.zip >> "data/oi/${s}_metrics.csv" || true; fi
-              if curl --connect-timeout 5 --max-time 20 -fsSL "$k" -o /tmp/k.zip 2>/dev/null; then unzip -p /tmp/k.zip >> "data/price/${s}_5m.csv" || true; fi
+          SYMBOLS='${{ matrix.shard }}'
+          MONTHS="2025-01 2025-02 2025-03 2025-04 2025-05 2025-06 2025-07 2025-08 2025-09 2025-10 2025-11 2025-12 2026-01 2026-02 2026-03 2026-04 2026-05 2026-06 2026-07 2026-08"
+          for s in $SYMBOLS; do
+            for ym in $MONTHS; do
+              m="https://data.binance.vision/data/futures/um/monthly/metrics/${s}/${s}-metrics-${ym}.zip"
+              k="https://data.binance.vision/data/futures/um/monthly/klines/${s}/5m/${s}-5m-${ym}.zip"
+              if curl --retry 2 --connect-timeout 5 --max-time 45 -fsSL "$m" -o /tmp/m.zip 2>/dev/null; then
+                unzip -p /tmp/m.zip >> "data/oi/${s}_metrics.csv" || true
+              fi
+              if curl --retry 2 --connect-timeout 5 --max-time 45 -fsSL "$k" -o /tmp/k.zip 2>/dev/null; then
+                unzip -p /tmp/k.zip >> "data/price/${s}_5m.csv" || true
+              fi
             done
-            d=$(date -I -d "$d + 1 day")
           done
-      - name: Inventory coverage
+      - name: Fallback for missing OI months using daily metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          SYMBOLS='${{ matrix.shard }}'
+          python - <<'PY'
+          import os,glob,pandas as pd
+          for s in os.environ.get('SYMBOLS','').split():
+              f=f'data/oi/{s}_metrics.csv'
+              if not os.path.exists(f) or os.path.getsize(f)==0:
+                  print('NO_MONTHLY_OI',s)
+          PY
+        env:
+          SYMBOLS: ${{ matrix.shard }}
+      - name: Validate coverage
         shell: bash
         run: |
           python - <<'PY'
-          import glob,os
+          import glob,os,csv
           for kind in ['oi','price']:
               print('\n'+kind.upper())
               for f in sorted(glob.glob('data/'+kind+'/*')):
                   n=sum(1 for _ in open(f,errors='ignore'))
                   print(os.path.basename(f), n)
+          oi=set(os.path.basename(x).split('_metrics')[0] for x in glob.glob('data/oi/*_metrics.csv') if os.path.getsize(x)>0)
+          px=set(os.path.basename(x).split('_5m')[0] for x in glob.glob('data/price/*_5m.csv') if os.path.getsize(x)>0)
+          missing=sorted(px-oi)
+          if missing:
+              print('MISSING_OI_FOR', ','.join(missing))
+          if not oi or not px:
+              raise SystemExit('No usable data downloaded')
+          print('OI_SYMBOLS',len(oi),'PRICE_SYMBOLS',len(px),'PAIRED',len(oi&px))
           PY
-      - name: Upload expanded universe
+      - name: Upload shard artifact
         uses: actions/upload-artifact@v4
         with:
-          name: expanded-meme-newlisting-oi-price-2025-2026
+          name: expanded-oi-shard-${{ strategy.job-index }}
           path: data/
           retention-days: 30
