@@ -1,0 +1,41 @@
+name: Fetch 2024 BTC ETH BNB 5m OOS Data
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fetch-2024-5m-oos.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch_data:
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [BTCUSDT, ETHUSDT, BNBUSDT]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download 2024 Binance USD-M Futures 5m data
+        env:
+          S: ${{ matrix.symbol }}
+        run: |
+          set -euo pipefail
+          : > ${S}_5m_2024.csv
+          for m in $(seq -w 1 12); do
+            u="https://data.binance.vision/data/futures/um/monthly/klines/${S}/5m/${S}-5m-2024-${m}.zip"
+            echo "Downloading $u"
+            curl --retry 3 --retry-delay 2 -fsSL "$u" -o /tmp/${S}-${m}.zip
+            unzip -p /tmp/${S}-${m}.zip >> ${S}_5m_2024.csv
+            printf '\n' >> ${S}_5m_2024.csv
+          done
+          test -s ${S}_5m_2024.csv
+          wc -l ${S}_5m_2024.csv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 2024-5m-${{ matrix.symbol }}
+          path: ${{ matrix.symbol }}_5m_2024.csv
+          retention-days: 7
