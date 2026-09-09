@@ -41,25 +41,21 @@ jobs:
               fi
             done
           done
-      - name: Fallback for missing OI months using daily metrics
+      - name: Check missing OI without dependencies
         shell: bash
         run: |
           set -euo pipefail
           SYMBOLS='${{ matrix.shard }}'
-          python - <<'PY'
-          import os,glob,pandas as pd
-          for s in os.environ.get('SYMBOLS','').split():
-              f=f'data/oi/{s}_metrics.csv'
-              if not os.path.exists(f) or os.path.getsize(f)==0:
-                  print('NO_MONTHLY_OI',s)
-          PY
-        env:
-          SYMBOLS: ${{ matrix.shard }}
+          for s in $SYMBOLS; do
+            if [ ! -s "data/oi/${s}_metrics.csv" ]; then
+              echo "NO_MONTHLY_OI $s"
+            fi
+          done
       - name: Validate coverage
         shell: bash
         run: |
           python - <<'PY'
-          import glob,os,csv
+          import glob,os
           for kind in ['oi','price']:
               print('\n'+kind.upper())
               for f in sorted(glob.glob('data/'+kind+'/*')):
@@ -70,9 +66,10 @@ jobs:
           missing=sorted(px-oi)
           if missing:
               print('MISSING_OI_FOR', ','.join(missing))
-          if not oi or not px:
-              raise SystemExit('No usable data downloaded')
-          print('OI_SYMBOLS',len(oi),'PRICE_SYMBOLS',len(px),'PAIRED',len(oi&px))
+          paired=oi & px
+          if not paired:
+              raise SystemExit('No paired OI+price data downloaded')
+          print('OI_SYMBOLS',len(oi),'PRICE_SYMBOLS',len(px),'PAIRED',len(paired))
           PY
       - name: Upload shard artifact
         uses: actions/upload-artifact@v4
