@@ -1,0 +1,24 @@
+name: One-off Telegram Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-off-telegram-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send one synthetic POI Telegram test
+        env:
+          WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer ${WORKER_ACCESS_KEY}" \
+            "https://bybit-trading-screener.feelmebaby79.workers.dev/test-poi-telegram?symbol=BTCUSDT"
