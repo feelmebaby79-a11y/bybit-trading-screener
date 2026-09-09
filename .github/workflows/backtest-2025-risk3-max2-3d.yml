@@ -1,0 +1,70 @@
+name: BTC ETH BNB 2025 Risk3 Max2 3Day Hold
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/backtest-2025-risk3-max2-3d.yml'
+      - 'aggregate_2025_risk3_max2_3d.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  symbol_backtest:
+    strategy:
+      fail-fast: false
+      matrix:
+        symbol: [BTCUSDT, ETHUSDT, BNBUSDT]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare 2025 data and signals
+        env:
+          S: ${{ matrix.symbol }}
+        run: |
+          set -euo pipefail
+          cp entry_trigger.js entry_trigger.mjs
+          : > ${S}_5m.csv
+          for m in $(seq -w 1 12); do
+            u="https://data.binance.vision/data/futures/um/monthly/klines/${S}/5m/${S}-5m-2025-${m}.zip"
+            curl -fsSL "$u" -o /tmp/k.zip
+            unzip -p /tmp/k.zip >> ${S}_5m.csv
+            printf '\n' >> ${S}_5m.csv
+          done
+          cp ${S}_5m.csv btc5m.csv
+          cp backtest_btc_2026_day_swing.mjs bt_${S}_2025.mjs
+          sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" bt_${S}_2025.mjs
+          sed -i "s/const SYMBOL='BTCUSDT'/const SYMBOL='${S}'/" bt_${S}_2025.mjs
+          sed -i "s/const START=Date.parse('2026-01-01T00:00:00Z');/const START=Date.parse('2025-01-01T00:00:00Z');/" bt_${S}_2025.mjs
+          sed -i "s#const END=Math.floor((Date.now()-300000)/300000)\*300000;#const END=Date.parse('2025-12-31T23:59:59Z');#" bt_${S}_2025.mjs
+          sed -i 's/function asianLevels(all5,t,width)/function asianLevels(a15,t,width)/' bt_${S}_2025.mjs
+          sed -i 's/const bars=all5.filter(c=>c.start>=asiaStart&&c.start<asiaEnd)/const bars=a15.filter(c=>c.start>=asiaStart\&\&c.start<asiaEnd)/' bt_${S}_2025.mjs
+          sed -i 's/asianLevels(all5,t,w)/asianLevels(a15,t,w)/' bt_${S}_2025.mjs
+          node bt_${S}_2025.mjs > result_${S}.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: result-2025-3d-${{ matrix.symbol }}
+          path: |
+            result_${{ matrix.symbol }}.log
+            ${{ matrix.symbol }}_5m.csv
+
+  aggregate:
+    needs: symbol_backtest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: result-2025-3d-*
+          merge-multiple: true
+      - name: Aggregate 72h portfolio
+        run: node aggregate_2025_risk3_max2_3d.mjs | tee portfolio_2025_3d.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-2025-risk3-max2-3d
+          path: |
+            portfolio_2025_3d.log
+            portfolio_2025_risk3_max2_3d.json
+            trades_2025_risk3_max2_3d.json
