@@ -169,14 +169,19 @@ async function runSafePoiWatch(env, ctx) {
     }
   }
 
-  for (const i of Array.isArray(evaluated.arrivals) ? evaluated.arrivals : []) {
+  for (const i of Array.isArray(evaluated.items) ? evaluated.items : []) {
     const symbol = String(i?.symbol || "").toUpperCase();
-    if (!active.has(symbol) || !validPoi(i)) {
-      suppressed.push({ symbol, reason: "invalid_or_stale_arrival" });
+    if (!active.has(symbol) || !i?.monitoring || !validPoi(i) || i?.in_poi !== true) {
       continue;
     }
+    const arrivalKey = `poi-arrival:${i.poi_id}`;
     try {
+      if (await stateHas(env, arrivalKey)) {
+        suppressed.push({ symbol, reason: "duplicate_poi_arrival" });
+        continue;
+      }
       await sendTelegram(env, buildPoiArrivalMessage(i));
+      await statePut(env, arrivalKey);
       arrivalSent.push({ symbol, poi_id: i.poi_id });
     } catch (e) {
       errors.push({ symbol, type: "arrival", error: e?.message || String(e) });
