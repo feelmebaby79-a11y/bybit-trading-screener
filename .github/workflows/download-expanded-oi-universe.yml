@@ -1,0 +1,45 @@
+name: Download Expanded OI Universe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download expanded Binance futures OI and price data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/oi data/price
+          # Meme + newer/high-beta USD-M perpetual universe. Missing pre-listing days are expected.
+          SYMBOLS="1000PEPEUSDT WIFUSDT 1000BONKUSDT 1000SHIBUSDT 1000FLOKIUSDT TRUMPUSDT PENGUUSDT PNUTUSDT NEIROUSDT 1000SATSUSDT 1000RATSUSDT MEMEUSDT BOMEUSDT BRETTUSDT POPCATUSDT MEWUSDT TURBOUSDT MOODENGUSDT ACTUSDT GOATUSDT FARTCOINUSDT TOSHIUSDT KAITOUSDT VIRTUALUSDT SUIUSDT ENAUSDT WLDUSDT APTUSDT SEIUSDT TIAUSDT JUPUSDT ONDOUSDT PYTHUSDT NOTUSDT TONUSDT HMSTRUSDT"
+          START=2025-01-01
+          END=2026-08-31
+          d="$START"
+          while [[ "$d" < "$END" || "$d" == "$END" ]]; do
+            for s in $SYMBOLS; do
+              m="https://data.binance.vision/data/futures/um/daily/metrics/${s}/${s}-metrics-${d}.zip"
+              k="https://data.binance.vision/data/futures/um/daily/klines/${s}/5m/${s}-5m-${d}.zip"
+              curl -fsSL "$m" -o /tmp/m.zip 2>/dev/null && unzip -p /tmp/m.zip >> "data/oi/${s}_metrics.csv" || true
+              curl -fsSL "$k" -o /tmp/k.zip 2>/dev/null && unzip -p /tmp/k.zip >> "data/price/${s}_5m.csv" || true
+            done
+            d=$(date -I -d "$d + 1 day")
+          done
+      - name: Inventory coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob,os
+          for kind in ['oi','price']:
+              print('\n',kind.upper())
+              for f in sorted(glob.glob('data/'+kind+'/*')):
+                  n=sum(1 for _ in open(f,errors='ignore'))
+                  print(os.path.basename(f), n)
+          PY
+      - name: Upload expanded universe
+        uses: actions/upload-artifact@v4
+        with:
+          name: expanded-meme-newlisting-oi-price-2025-2026
+          path: data/
+          retention-days: 30
