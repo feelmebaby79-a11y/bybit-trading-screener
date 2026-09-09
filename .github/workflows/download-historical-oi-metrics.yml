@@ -1,0 +1,103 @@
+name: Download Historical OI Metrics
+
+on:
+  push:
+    paths:
+      - '.github/workflows/download-historical-oi-metrics.yml'
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Download Binance USD-M futures metrics
+        shell: bash
+        run: |
+          cat > /tmp/download_oi.py <<'PY'
+          import csv, io, os, zipfile, urllib.request
+          from datetime import date, timedelta
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+
+          symbols = ['BTCUSDT','ETHUSDT','BNBUSDT','XRPUSDT','SOLUSDT','DOGEUSDT','ADAUSDT','TRXUSDT','LINKUSDT','AVAXUSDT','BCHUSDT']
+          periods = [(2025, date(2025,1,1), date(2025,12,31)),
+                     (2026, date(2026,1,1), date(2026,8,31))]
+          outdir = 'oi_metrics'
+          os.makedirs(outdir, exist_ok=True)
+
+          def dates(a,b):
+              d=a
+              while d<=b:
+                  yield d
+                  d += timedelta(days=1)
+
+          def fetch_one(sym, d):
+              ds=d.isoformat()
+              url=f'https://data.binance.vision/data/futures/um/daily/metrics/{sym}/{sym}-metrics-{ds}.zip'
+              try:
+                  req=urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      blob=r.read()
+                  with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                      names=z.namelist()
+                      if not names: return sym, d, None
+                      txt=z.read(names[0]).decode('utf-8-sig')
+                  return sym, d, txt
+              except Exception:
+                  return sym, d, None
+
+          for year, start, end in periods:
+              tasks=[(s,d) for s in symbols for d in dates(start,end)]
+              rows_by_symbol={s:[] for s in symbols}
+              headers={}
+              ok=miss=0
+              with ThreadPoolExecutor(max_workers=24) as ex:
+                  futs=[ex.submit(fetch_one,s,d) for s,d in tasks]
+                  for fut in as_completed(futs):
+                      s,d,txt=fut.result()
+                      if not txt:
+                          miss+=1; continue
+                      rd=list(csv.reader(io.StringIO(txt)))
+                      if not rd: continue
+                      header=rd[0]
+                      if 'create_time' in header:
+                          data=rd[1:]
+                          headers[s]=header
+                      else:
+                          data=rd
+                      rows_by_symbol[s].extend(data)
+                      ok+=1
+              for s in symbols:
+                  rows=rows_by_symbol[s]
+                  if not rows: continue
+                  # sort by create_time string (first column)
+                  rows.sort(key=lambda r:r[0])
+                  header=headers.get(s,['create_time','symbol','sum_open_interest','sum_open_interest_value','count_toptrader_long_short_ratio','sum_toptrader_long_short_ratio','count_long_short_ratio','sum_taker_long_short_vol_ratio'])
+                  path=os.path.join(outdir,f'{s}_metrics_{year}.csv')
+                  with open(path,'w',newline='') as f:
+                      w=csv.writer(f); w.writerow(header); w.writerows(rows)
+              print(f'{year}: downloaded daily files={ok}, missing={miss}')
+          PY
+          python /tmp/download_oi.py
+          ls -lh oi_metrics
+
+      - name: Validate OI columns and coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv, glob
+          for f in sorted(glob.glob('oi_metrics/*.csv')):
+              with open(f,newline='') as fh:
+                  r=csv.reader(fh); h=next(r); rows=list(r)
+              oi='sum_open_interest' in h and 'sum_open_interest_value' in h
+              first=rows[0][0] if rows else 'NA'; last=rows[-1][0] if rows else 'NA'
+              print(f'{f}: rows={len(rows)} oi_cols={oi} {first} -> {last}')
+          PY
+
+      - name: Upload OI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-oi-metrics-2025-2026
+          path: oi_metrics/*.csv
+          compression-level: 6
+          retention-days: 30
