@@ -1,0 +1,40 @@
+name: Download Top10 5m Data
+on:
+  push:
+    paths:
+      - '.github/workflows/download-top10-5m.yml'
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Binance USD-M 5m
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/top10_5m
+          symbols='XRPUSDT SOLUSDT DOGEUSDT ADAUSDT TRXUSDT AVAXUSDT LINKUSDT BCHUSDT'
+          for y in 2025 2026; do
+            for s in $symbols; do
+              out="data/top10_5m/${s}_5m_${y}.csv"
+              : > "$out"
+              for m in $(seq -w 1 12); do
+                # 2026 future/unpublished months may 404; skip them.
+                u="https://data.binance.vision/data/futures/um/monthly/klines/${s}/5m/${s}-5m-${y}-${m}.zip"
+                if curl -fLsS "$u" -o /tmp/x.zip; then
+                  unzip -p /tmp/x.zip >> "$out"
+                  printf '\n' >> "$out"
+                fi
+              done
+              test -s "$out" || rm -f "$out"
+            done
+          done
+      - name: Upload data
+        uses: actions/upload-artifact@v4
+        with:
+          name: top10-5m-2025-2026
+          path: data/top10_5m/*.csv
+          if-no-files-found: error
+          retention-days: 7
