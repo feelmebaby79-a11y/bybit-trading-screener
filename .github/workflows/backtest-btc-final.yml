@@ -7,6 +7,7 @@ on:
       - 'backtest_btc_2026_day_swing.mjs'
       - 'aggregate_top5_2026.mjs'
       - 'aggregate_btc_eth_bnb_10x_2026.mjs'
+      - 'aggregate_top3_10x_riskcap_1m.mjs'
       - '.github/workflows/backtest-btc-final.yml'
 
 permissions:
@@ -67,3 +68,5 @@ jobs:
         run: node aggregate_top5_2026.mjs
       - name: Aggregate BTC ETH BNB 10x DAY portfolio
         run: node aggregate_btc_eth_bnb_10x_2026.mjs
+      - name: Aggregate one-month BTC ETH BNB 10x risk-cap portfolio
+        run: node aggregate_top3_10x_riskcap_1m.mjs
