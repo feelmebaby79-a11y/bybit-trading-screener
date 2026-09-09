@@ -1,0 +1,31 @@
+name: Realtime Watch Health Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check deployed realtime and entry watchers
+        run: |
+          set -euo pipefail
+          BASE="https://bybit-trading-screener.feelmebaby79.workers.dev"
+          curl -fsS --retry 2 "$BASE/realtime-watch" -o realtime.json
+          curl -fsS --retry 2 "$BASE/entry-watch" -o entry.json
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+
+          with open('realtime.json') as f: r=json.load(f)
+          with open('entry.json') as f: e=json.load(f)
+          print('REALTIME_JSON=' + json.dumps(r, ensure_ascii=False, separators=(',',':')))
+          print('ENTRY_JSON=' + json.dumps(e, ensure_ascii=False, separators=(',',':')))
+          if r.get('ok') is not True: raise SystemExit('realtime-watch not ok')
+          if e.get('ok') is not True: raise SystemExit('entry-watch not ok')
+          if not r.get('generated_at') or not e.get('generated_at'): raise SystemExit('missing generated_at')
+          print('HEALTH_CHECK_OK')
+          PY
