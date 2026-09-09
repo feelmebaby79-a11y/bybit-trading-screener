@@ -1,10 +1,10 @@
-name: BTC Final Model Backtest
+name: BTC 2026 Day Swing Backtest
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'backtest_btc_final_model.mjs'
+      - 'backtest_btc_2026_day_swing.mjs'
       - '.github/workflows/backtest-btc-final.yml'
 
 permissions:
@@ -19,11 +19,11 @@ jobs:
       - name: Prepare ESM entry module
         run: |
           cp entry_trigger.js entry_trigger.mjs
-          sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" backtest_btc_final_model.mjs
-      - name: Download BTCUSDT 5m six-month history
+          sed -i "s#'./entry_trigger.js'#'./entry_trigger.mjs'#" backtest_btc_2026_day_swing.mjs
+      - name: Download BTCUSDT 5m history with warmup
         run: |
           : > btc5m.csv
-          for i in $(seq 0 195); do
+          for i in $(seq 0 300); do
             d=$(date -u -d "-$i day" +%F)
             u="https://data.binance.vision/data/futures/um/daily/klines/BTCUSDT/5m/BTCUSDT-5m-${d}.zip"
             if curl -fsSL "$u" -o /tmp/k.zip; then
@@ -33,5 +33,5 @@ jobs:
           done
           test -s btc5m.csv
           wc -l btc5m.csv
-      - name: Run six-month BTCUSDT backtest
-        run: node backtest_btc_final_model.mjs
+      - name: Run 2026 DAY and SWING backtest
+        run: node backtest_btc_2026_day_swing.mjs
