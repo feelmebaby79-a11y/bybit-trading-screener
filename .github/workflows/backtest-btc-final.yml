@@ -6,6 +6,7 @@ on:
     paths:
       - 'backtest_btc_2026_day_swing.mjs'
       - 'aggregate_top5_2026.mjs'
+      - 'aggregate_btc_eth_bnb_10x_2026.mjs'
       - '.github/workflows/backtest-btc-final.yml'
 
 permissions:
@@ -64,3 +65,5 @@ jobs:
           merge-multiple: true
       - name: Aggregate top-5 portfolio
         run: node aggregate_top5_2026.mjs
+      - name: Aggregate BTC ETH BNB 10x DAY portfolio
+        run: node aggregate_btc_eth_bnb_10x_2026.mjs
