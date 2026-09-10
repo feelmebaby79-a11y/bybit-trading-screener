@@ -9,10 +9,10 @@ async function snapGet(env,minute){const v=await stateGet(env,`oi-all:${minute}`
 async function snapPut(env,minute,obj){return stateSet(env,`oi-all:${minute}`,JSON.stringify(obj),SNAPSHOT_TTL_SECONDS)}
 function pct(n,p){return Number.isFinite(n)&&Number.isFinite(p)&&p>0?(n/p-1)*100:null}
 function metric(cur,prev,s,field){return prev?.[s]?pct(cur[s]?.[field],prev[s]?.[field]):null}
-function classify(x){const vals=[x.oi5,x.oi15,x.oi1h,x.oi4h],persistent=vals.filter(Number.isFinite).length>=2&&vals.filter(Number.isFinite).every(v=>v>0),acceleration=Number.isFinite(x.oi1)&&Number.isFinite(x.oi5)?x.oi1*5>x.oi5*1.2:Number.isFinite(x.oi15)&&Number.isFinite(x.oi1h)&&x.oi15>0&&x.oi1h>0&&x.oi15*4>x.oi1h*1.2;if(!Number.isFinite(x.oi1)||x.oi1<1)return{hit:false,level:null,persistent,acceleration};const level=x.oi1>=2?"STRONG_SURGE":"WATCH";return{hit:true,level,persistent,acceleration}}
+function classify(x){const vals=[x.oi5,x.oi15,x.oi1h,x.oi4h],persistent=vals.filter(Number.isFinite).length>=2&&vals.filter(Number.isFinite).every(v=>v>0),acceleration=Number.isFinite(x.oi1)&&Number.isFinite(x.oi5)?x.oi1*5>x.oi5*1.2:Number.isFinite(x.oi15)&&Number.isFinite(x.oi1h)&&x.oi15>0&&x.oi1h>0&&x.oi15*4>x.oi1h*1.2;if(!Number.isFinite(x.oi1)||x.oi1<5)return{hit:false,level:null,persistent,acceleration};return{hit:true,level:"STRONG_SURGE",persistent,acceleration}}
 async function sendTelegram(e,m){const t=String(e.TELEGRAM_BOT_TOKEN||"").trim(),c=String(e.TELEGRAM_CHAT_ID||"").trim();if(!t||!c)throw Error("Telegram env missing");const r=await fetch(`https://api.telegram.org/bot${t}/sendMessage`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({chat_id:c,text:m,parse_mode:"HTML"})});if(!r.ok)throw Error(`Telegram ${r.status}`)}
 function f(v){return Number.isFinite(v)?`${v>=0?"+":""}${v.toFixed(2)}%`:"n/a"}
-function message(x){const strong=x.level==="STRONG_SURGE",title=strong?"OI 강한 급등":"OI WATCH",icon=strong?"🚨🚨":"⚠️";return`${icon} <b>${title}</b>\n<b>${x.symbol}</b>\nOI 1m: <b>${f(x.oi1)}</b>\nOI 5m: <b>${f(x.oi5)}</b>\nOI 15m: <b>${f(x.oi15)}</b>\nOI 1H: <b>${f(x.oi1h)}</b>\nOI 4H: <b>${f(x.oi4h)}</b>\nPrice 1m: <b>${f(x.price1m)}</b>\nPrice 5m: <b>${f(x.price5m)}</b>\nPrice 1H: <b>${f(x.price1h)}</b>\n지속 증가: <b>${x.persistent?"YES":"NO"}</b> / 가속: <b>${x.acceleration?"YES":"NO"}</b>\n\n<b>${strong?"1분 OI +2.00% 이상 강한 급등":"1분 OI +1.00% 이상 WATCH"}</b>\n<b>OI 알림은 ENTRY 신호가 아닙니다.</b>`}
+function message(x){return`🚨🚨 <b>OI 강한 급등</b>\n<b>${x.symbol}</b>\nOI 1m: <b>${f(x.oi1)}</b>\nOI 5m: <b>${f(x.oi5)}</b>\nOI 15m: <b>${f(x.oi15)}</b>\nOI 1H: <b>${f(x.oi1h)}</b>\nOI 4H: <b>${f(x.oi4h)}</b>\nPrice 1m: <b>${f(x.price1m)}</b>\nPrice 5m: <b>${f(x.price5m)}</b>\nPrice 1H: <b>${f(x.price1h)}</b>\n지속 증가: <b>${x.persistent?"YES":"NO"}</b> / 가속: <b>${x.acceleration?"YES":"NO"}</b>\n\n<b>1분 OI +5.00% 이상 강한 급등만 알림</b>\n<b>OI 알림은 ENTRY 신호가 아닙니다.</b>`}
 export async function runScheduledOiSurgeWatch(env,scheduledTime=Date.now()){
  const w=new Date(+scheduledTime||Date.now()),m=Math.floor(w.getTime()/60000),cur=await fetchAllTickers();
  const [p1,p5,p15,p60,p240]=await Promise.all([snapGet(env,m-1),snapGet(env,m-5),snapGet(env,m-15),snapGet(env,m-60),snapGet(env,m-240)]);
@@ -24,5 +24,5 @@ export async function runScheduledOiSurgeWatch(env,scheduledTime=Date.now()){
   const key=`oi-alert:${symbol}:${c.level}:${w.toISOString().slice(0,13)}`;if(await stateHas(env,key))continue;
   await sendTelegram(env,message(x));await statePut(env,key);sent.push(x);
  }catch(e){errors.push({symbol,error:e?.message||String(e)})}
- return{ok:true,generated_at:new Date().toISOString(),universe_source:"BYBIT_LINEAR_ALL_USDT",checked_symbols:Object.keys(cur).length,hits,telegram_sent:sent,errors};
+ return{ok:true,generated_at:new Date().toISOString(),universe_source:"BYBIT_LINEAR_ALL_USDT",alert_threshold_1m_pct:5,checked_symbols:Object.keys(cur).length,hits,telegram_sent:sent,errors};
 }
