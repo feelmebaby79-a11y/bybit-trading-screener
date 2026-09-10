@@ -1,0 +1,44 @@
+name: Build Daily Watchlist
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Bybit HTF LTF Scan"]
+    types: [completed]
+  push:
+    paths:
+      - '.github/workflows/build-daily-watchlist.yml'
+      - 'build_daily_watchlist.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-daily-watchlist-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Build watchlist
+        run: python build_daily_watchlist.py
+
+      - name: Save watchlist
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add latest/watchlist.json
+          if git diff --cached --quiet; then
+            echo "No watchlist changes"
+          else
+            git commit -m "Refresh core plus daily watchlist"
+            git push origin HEAD:main
+          fi
