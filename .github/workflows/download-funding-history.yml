@@ -1,0 +1,51 @@
+name: Download Historical Funding Rates
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0,1,2,3,4,5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download Binance USD-M funding history
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          python - <<'PY'
+          import os,time,requests,csv
+          from datetime import datetime, timezone
+          symbols='''1000PEPEUSDT WIFUSDT 1000BONKUSDT 1000SHIBUSDT 1000FLOKIUSDT TRUMPUSDT PENGUUSDT PNUTUSDT NEIROUSDT 1000SATSUSDT 1000RATSUSDT MEMEUSDT BOMEUSDT BRETTUSDT POPCATUSDT MEWUSDT TURBOUSDT MOODENGUSDT ACTUSDT GOATUSDT FARTCOINUSDT TOSHIUSDT KAITOUSDT VIRTUALUSDT SUIUSDT ENAUSDT WLDUSDT APTUSDT SEIUSDT TIAUSDT JUPUSDT ONDOUSDT PYTHUSDT NOTUSDT TONUSDT HMSTRUSDT'''.split()
+          shard=int(os.environ['SHARD']); symbols=symbols[shard::6]
+          start=int(datetime(2025,1,1,tzinfo=timezone.utc).timestamp()*1000)
+          end=int(datetime.now(timezone.utc).timestamp()*1000)
+          os.makedirs('funding',exist_ok=True)
+          for sym in symbols:
+              cur=start; rows=[]
+              while cur <= end:
+                  r=requests.get('https://fapi.binance.com/fapi/v1/fundingRate',params={'symbol':sym,'startTime':cur,'endTime':end,'limit':1000},timeout=30)
+                  r.raise_for_status(); data=r.json()
+                  if not data: break
+                  rows.extend(data)
+                  nxt=int(data[-1]['fundingTime'])+1
+                  if nxt<=cur: break
+                  cur=nxt
+                  if len(data)<1000: break
+                  time.sleep(.08)
+              with open(f'funding/{sym}_funding.csv','w',newline='') as f:
+                  w=csv.writer(f); w.writerow(['symbol','fundingTime','fundingRate','markPrice'])
+                  for x in rows: w.writerow([x.get('symbol'),x.get('fundingTime'),x.get('fundingRate'),x.get('markPrice','')])
+              print(sym,len(rows))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: funding-shard-${{ matrix.shard }}
+          path: funding/*.csv
+          retention-days: 7
