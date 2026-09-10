@@ -1,51 +1,126 @@
 {
   "ok": true,
-  "version": 7,
-  "updated_at": "2026-09-08T23:59:28Z",
+  "version": 8,
+  "updated_at": "2026-09-10T00:11:27.064667+00:00",
   "policy": {
-    "mode": "DAILY_RECOMMENDATIONS",
+    "mode": "CORE_PLUS_DAILY_RECOMMENDATIONS",
+    "default_symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "XRPUSDT",
+      "SOLUSDT",
+      "BNBUSDT"
+    ],
+    "daily_recommendation_count": 3,
+    "daily_refresh_time_kst": "09:00",
+    "daily_recommendations_replace_each_day": true,
     "no_retrace_no_trade": true,
     "poi_arrival_is_entry": false,
-    "poi_timeframes": ["1H", "15m"],
+    "poi_timeframes": [
+      "1H",
+      "15m"
+    ],
     "entry_timeframe": "5m",
     "entry_model": "1H/15m POI -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m strict FVG/validated OB retracement -> live RR >= 1.5",
     "minimum_rr": 1.5,
-    "score_scale": 100,
-    "note": "Daily recommendation watchlist. ACTIVE symbols are monitored continuously; POI arrival is not entry. No retrace = no trade."
+    "note": "BTC/ETH/XRP/SOL/BNB are always monitored. Daily recommendations are added after the 09:00 KST scan and replaced at the next 09:00 KST scan."
   },
   "items": [
     {
-      "symbol": "SOPHUSDT",
-      "direction": "LONG",
-      "score": 67,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict bullish FVG/validated OB retracement",
-      "note": "1D/4H bullish, 4H/1H discount, strong relative strength vs BTC. Current 5m entry trigger incomplete; wait for retracement.",
-      "updated_at": "2026-09-08T23:59:28Z"
-    },
-    {
-      "symbol": "FORMUSDT",
-      "direction": "LONG",
-      "score": 66,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict bullish FVG/validated OB retracement",
-      "note": "1D/1H/15m bullish with strong relative strength and favorable scan RR, but 24h extension is large. No chase; monitor only for fresh POI retracement.",
-      "updated_at": "2026-09-08T23:59:28Z"
-    },
-    {
-      "symbol": "HBARUSDT",
+      "symbol": "BTCUSDT",
       "direction": "SHORT",
-      "score": 62,
+      "score": 4.31,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict bearish FVG/validated OB retracement",
-      "note": "1D/4H/1H bearish and weakening vs BTC. 1H location is discount, so do not chase downside; wait for rebound into a fresh premium-side POI and 5m confirmation.",
-      "updated_at": "2026-09-08T23:59:28Z"
+      "bucket": "DEFAULT",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Core default symbol; always monitored. Direction is refreshed from the 09:00 KST daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "direction": "SHORT",
+      "score": 5.56,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DEFAULT",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Core default symbol; always monitored. Direction is refreshed from the 09:00 KST daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "direction": "SHORT",
+      "score": 9.77,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DEFAULT",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Core default symbol; always monitored. Direction is refreshed from the 09:00 KST daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "direction": "SHORT",
+      "score": 3.24,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DEFAULT",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Core default symbol; always monitored. Direction is refreshed from the 09:00 KST daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "BNBUSDT",
+      "direction": "SHORT",
+      "score": 0.87,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DEFAULT",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Core default symbol; always monitored. Direction is refreshed from the 09:00 KST daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "ETHFIUSDT",
+      "direction": "LONG",
+      "score": 19.79,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Daily recommendation; refreshed at 09:00 KST and replaced by the next daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "APTUSDT",
+      "direction": "SHORT",
+      "score": 19.62,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Daily recommendation; refreshed at 09:00 KST and replaced by the next daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
+    },
+    {
+      "symbol": "UAIUSDT",
+      "direction": "LONG",
+      "score": 19.08,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Daily recommendation; refreshed at 09:00 KST and replaced by the next daily scan.",
+      "updated_at": "2026-09-10T00:11:27.064667+00:00"
     }
   ]
 }
