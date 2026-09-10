@@ -78,3 +78,31 @@ jobs:
           print("positionCount:", payload.get("positionCount"))
           print("symbols:", payload.get("symbols"))
           PY
+
+      - name: Send one-shot Telegram transport test
+        if: contains(github.event.head_commit.message, '[telegram-test]')
+        env:
+          WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/test-poi-telegram?symbol=BTCUSDT"
+          req = urllib.request.Request(
+              url,
+              method="POST",
+              headers={
+                  "Accept": "application/json",
+                  "Authorization": "Bearer " + os.environ["WORKER_ACCESS_KEY"],
+                  "User-Agent": "bybit-worker-telegram-test",
+              },
+          )
+          with urllib.request.urlopen(req, timeout=30) as response:
+              payload = json.loads(response.read().decode("utf-8"))
+          if not payload.get("ok") or not payload.get("telegram_sent"):
+              raise SystemExit("telegram test failed: " + repr(payload))
+          print("telegram transport test OK")
+          print("symbol:", payload.get("symbol"))
+          PY
