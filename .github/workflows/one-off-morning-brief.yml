@@ -10,8 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract current scan summary
+      - name: Extract held positions
         run: |
-          echo '===ROOT==='; jq '{generated_at,universe_count,position_fetch_ok,position_symbols}' latest/scan.json
-          echo '===TOP LONG==='; jq -r '[..|objects|select(has("symbol") and has("long_score"))|{symbol,last,price24h_pct,long_score,long_rr,long_entry_model_ready,long_reasons,"1D":.["1D"],"4H":.["4H"],"1H":.["1H"],"15m":.["15m"]}]|unique_by(.symbol)|sort_by(.long_score)|reverse|.[0:8]' latest/scan.json
-          echo '===TOP SHORT==='; jq -r '[..|objects|select(has("symbol") and has("short_score"))|{symbol,last,price24h_pct,short_score,short_rr,short_entry_model_ready,short_reasons,"1D":.["1D"],"4H":.["4H"],"1H":.["1H"],"15m":.["15m"]}]|unique_by(.symbol)|sort_by(.short_score)|reverse|.[0:8]' latest/scan.json
+          jq -r '.positions | to_entries | map(.value.analysis | {symbol,last,price24h_pct,"1D":.["1D"],"4H":.["4H"],"1H":.["1H"],"15m":.["15m"],long_rr,short_rr,long_entry_model_ready,short_entry_model_ready,long_reasons,short_reasons})' latest/scan.json
