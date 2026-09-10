@@ -39,11 +39,7 @@ def choose_side(row):
 
 
 def score_100(row, direction, raw_score):
-    """Convert the scanner's internal raw composite into the user-facing 0-100 recommendation score.
-
-    The raw scanner score is kept separately for auditability. The displayed score is deliberately
-    an absolute 100-point scale, matching the watchlist policy used before automation.
-    """
+    """Convert scanner internals into the agreed user-facing 0-100 score."""
     if raw_score is None:
         return None
     side = direction.lower()
@@ -69,8 +65,6 @@ def score_100(row, direction, raw_score):
     chase = num(row.get(f"{side}_chase_penalty")) or 0.0
     chase_penalty = min(max(chase, 0.0), 5.0) * 2.0
 
-    # The 40-point base keeps neutral setups around the middle of a 100-point scale.
-    # Raw structure/momentum remains the largest contributor; grade/RR/alignment refine it.
     score = 40.0 + raw_score + grade_bonus + rr_bonus + htf_bonus + ready_bonus - chase_penalty
     return int(round(clamp(score)))
 
@@ -91,7 +85,7 @@ def make_item(symbol, direction, raw_score, row, bucket, now):
         "note": (
             "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan."
             if bucket == "DEFAULT"
-            else "Daily recommendation; 100-point score refreshed at 09:00 KST and replaced by the next daily scan."
+            else "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan."
         ),
         "updated_at": now,
     }
@@ -125,7 +119,8 @@ for symbol in DEFAULT_SYMBOLS:
     else:
         items.append(make_item(symbol, direction, raw_score, row, "DEFAULT", now))
 
-# Rank by scanner raw score, but expose only the agreed 100-point score as `score`.
+# Daily recommendations are selected AND ranked by the agreed 0-100 score.
+# Raw score remains only an internal audit/tie-break value.
 ranked = []
 for symbol, row in by_symbol.items():
     if symbol in DEFAULT_SYMBOLS:
@@ -133,15 +128,18 @@ for symbol, row in by_symbol.items():
     direction, raw_score = choose_side(row)
     if direction is None or raw_score is None:
         continue
-    ranked.append((raw_score, symbol, direction, row))
+    display_score = score_100(row, direction, raw_score)
+    if display_score is None:
+        continue
+    ranked.append((display_score, raw_score, symbol, direction, row))
 
-ranked.sort(key=lambda x: x[0], reverse=True)
-for raw_score, symbol, direction, row in ranked[:DAILY_RECOMMENDATION_COUNT]:
+ranked.sort(key=lambda x: (x[0], x[1]), reverse=True)
+for display_score, raw_score, symbol, direction, row in ranked[:DAILY_RECOMMENDATION_COUNT]:
     items.append(make_item(symbol, direction, raw_score, row, "DAILY_RECOMMENDATION", now))
 
 payload = {
     "ok": True,
-    "version": 9,
+    "version": 10,
     "updated_at": now,
     "policy": {
         "mode": "CORE_PLUS_DAILY_RECOMMENDATIONS",
@@ -151,6 +149,7 @@ payload = {
         "daily_recommendations_replace_each_day": True,
         "score_scale": 100,
         "score_field": "score",
+        "ranking_field": "score",
         "raw_score_field": "raw_score",
         "no_retrace_no_trade": True,
         "poi_arrival_is_entry": False,
@@ -158,7 +157,7 @@ payload = {
         "entry_timeframe": "5m",
         "entry_model": "1H/15m POI -> touch activation -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m strict FVG/validated OB retracement -> live RR >= 1.5",
         "minimum_rr": 1.5,
-        "note": "All user-facing recommendation scores are 0-100. Scanner raw composite is retained separately only for ranking/audit."
+        "note": "Daily recommendations are selected and ranked by the user-facing 0-100 score. Scanner raw composite is retained separately only for audit/tie-breaks."
     },
     "items": items,
 }
@@ -172,15 +171,16 @@ print(json.dumps({
     "ok": True,
     "output": str(OUTPUT),
     "score_scale": 100,
+    "ranking_field": "score",
     "default_symbols": DEFAULT_SYMBOLS,
     "daily_recommendations": [
         {
-            "symbol": s,
-            "direction": d,
-            "score": score_100(r, d, raw),
-            "raw_score": round(raw, 4),
+            "symbol": symbol,
+            "direction": direction,
+            "score": display_score,
+            "raw_score": round(raw_score, 4),
         }
-        for raw, s, d, r in ranked[:DAILY_RECOMMENDATION_COUNT]
+        for display_score, raw_score, symbol, direction, row in ranked[:DAILY_RECOMMENDATION_COUNT]
     ],
     "item_count": len(items),
 }, ensure_ascii=False))
