@@ -1,0 +1,46 @@
+name: Fetch SOL XRP 2024 SMC Data
+on:
+  push:
+    paths:
+      - '.github/workflows/fetch-sol-xrp-2024-smc.yml'
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Binance USD-M 5m 2024
+        run: |
+          set -e
+          mkdir -p data
+          for S in SOLUSDT XRPUSDT; do
+            mkdir -p tmp/$S
+            for M in $(seq -w 1 12); do
+              U="https://data.binance.vision/data/futures/um/monthly/klines/$S/5m/$S-5m-2024-$M.zip"
+              echo "$U"
+              curl -fL --retry 3 "$U" -o "tmp/$S/$M.zip"
+              unzip -oq "tmp/$S/$M.zip" -d "tmp/$S/csv"
+            done
+            python - "$S" <<'PY'
+          import pandas as pd, glob, sys, os
+          s=sys.argv[1]
+          fs=sorted(glob.glob(f'tmp/{s}/csv/*.csv'))
+          names=['open_time','open','high','low','close','volume','close_time','quote_volume','count','taker_buy_volume','taker_buy_quote_volume','ignore']
+          out=[]
+          for f in fs:
+              d=pd.read_csv(f, header=None)
+              if not str(d.iloc[0,0]).isdigit():
+                  d=pd.read_csv(f)
+                  d.columns=names[:len(d.columns)]
+              else:
+                  d.columns=names[:len(d.columns)]
+              out.append(d)
+          z=pd.concat(out,ignore_index=True).drop_duplicates('open_time').sort_values('open_time')
+          z.to_csv(f'data/{s}_5m_2024.csv',index=False)
+          print(s,len(z),z.open_time.iloc[0],z.open_time.iloc[-1])
+          PY
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sol-xrp-2024-5m
+          path: data/*.csv
+          retention-days: 7
