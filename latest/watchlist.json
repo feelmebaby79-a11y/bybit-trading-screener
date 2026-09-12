@@ -1,9 +1,9 @@
 {
   "ok": true,
-  "version": 10,
-  "updated_at": "2026-09-12T00:23:37.379439+00:00",
+  "version": 11,
+  "updated_at": "2026-09-12T01:22:54.256374+00:00",
   "policy": {
-    "mode": "CORE_PLUS_DAILY_RECOMMENDATIONS",
+    "mode": "CORE_PLUS_CURRENT_POSITIONS_PLUS_DAILY_RECOMMENDATIONS",
     "default_symbols": [
       "BTCUSDT",
       "ETHUSDT",
@@ -11,6 +11,10 @@
       "SOLUSDT",
       "BNBUSDT"
     ],
+    "include_current_positions": true,
+    "position_source": "latest/scan.json",
+    "position_fetch_ok": true,
+    "position_symbols": [],
     "daily_recommendation_count": 3,
     "daily_refresh_time_kst": "09:00",
     "daily_recommendations_replace_each_day": true,
@@ -27,7 +31,7 @@
     "entry_timeframe": "5m",
     "entry_model": "1H/15m POI -> touch activation -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m strict FVG/validated OB retracement -> live RR >= 1.5",
     "minimum_rr": 1.5,
-    "note": "Daily recommendations are selected and ranked by the user-facing 0-100 score. Scanner raw composite is retained separately only for audit/tie-breaks."
+    "note": "Current open positions are always included while position_fetch_ok is true. Daily recommendations exclude symbols already included as current positions."
   },
   "items": [
     {
@@ -42,7 +46,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "ETHUSDT",
@@ -56,7 +60,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "XRPUSDT",
@@ -70,7 +74,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "SOLUSDT",
@@ -84,7 +88,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "BNBUSDT",
@@ -98,7 +102,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "JUPUSDT",
@@ -112,7 +116,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "LSKUSDT",
@@ -126,7 +130,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     },
     {
       "symbol": "SOPHUSDT",
@@ -140,7 +144,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-12T00:23:37.379439+00:00"
+      "updated_at": "2026-09-12T01:22:54.256374+00:00"
     }
   ]
 }
