@@ -52,6 +52,19 @@ jobs:
         run: |
           printf '%s' "$WORKER_ACCESS_KEY" | npx wrangler@latest secret put WORKER_ACCESS_KEY
 
+      - name: Sync Worker GitHub token when configured
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_GITHUB_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
+        run: |
+          if [ -n "$WORKER_GITHUB_TOKEN" ]; then
+            printf '%s' "$WORKER_GITHUB_TOKEN" | npx wrangler@latest secret put GITHUB_TOKEN
+            echo 'Worker GITHUB_TOKEN synchronized.'
+          else
+            echo '::notice::WORKER_GITHUB_TOKEN is not configured; preserving any existing Worker GITHUB_TOKEN.'
+          fi
+
       - name: Smoke test authenticated position lookup
         env:
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
@@ -77,6 +90,60 @@ jobs:
           print("position-symbols smoke test OK")
           print("positionCount:", payload.get("positionCount"))
           print("symbols:", payload.get("symbols"))
+          PY
+
+      - name: Smoke test scan endpoint
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/scan"
+          req = urllib.request.Request(
+              url,
+              headers={
+                  "Accept": "application/json",
+                  "User-Agent": "bybit-worker-scan-smoke-test",
+              },
+          )
+          with urllib.request.urlopen(req, timeout=30) as response:
+              payload = json.loads(response.read().decode("utf-8"))
+          if not payload.get("generated_at"):
+              raise SystemExit("scan smoke test failed: generated_at missing")
+          if "position_fetch_ok" not in payload:
+              raise SystemExit("scan smoke test failed: position_fetch_ok missing")
+          if not isinstance(payload.get("position_symbols"), list):
+              raise SystemExit("scan smoke test failed: position_symbols is not a list")
+          if not isinstance(payload.get("positions"), list):
+              raise SystemExit("scan smoke test failed: positions is not a list")
+          print("scan endpoint smoke test OK")
+          print("generated_at:", payload.get("generated_at"))
+          print("position_fetch_ok:", payload.get("position_fetch_ok"))
+          print("position_count:", len(payload.get("position_symbols") or []))
+          PY
+
+      - name: One-shot run-scan trigger test
+        if: contains(github.event.head_commit.message, '[scan-smoke]')
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/run-scan"
+          req = urllib.request.Request(
+              url,
+              headers={
+                  "Accept": "application/json",
+                  "User-Agent": "bybit-worker-run-scan-smoke-test",
+              },
+          )
+          with urllib.request.urlopen(req, timeout=30) as response:
+              payload = json.loads(response.read().decode("utf-8"))
+          if not payload.get("ok") or payload.get("status") != "started":
+              raise SystemExit("run-scan trigger failed: " + repr(payload))
+          print("run-scan trigger OK")
+          print("workflow:", payload.get("workflow"))
+          print("startedAt:", payload.get("startedAt"))
           PY
 
       - name: Send one-shot Telegram transport test
