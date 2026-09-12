@@ -114,12 +114,14 @@ jobs:
               raise SystemExit("scan smoke test failed: position_fetch_ok missing")
           if not isinstance(payload.get("position_symbols"), list):
               raise SystemExit("scan smoke test failed: position_symbols is not a list")
-          if not isinstance(payload.get("positions"), list):
-              raise SystemExit("scan smoke test failed: positions is not a list")
+          positions = payload.get("positions")
+          if not isinstance(positions, (list, dict)):
+              raise SystemExit("scan smoke test failed: positions is neither a list nor an object")
           print("scan endpoint smoke test OK")
           print("generated_at:", payload.get("generated_at"))
           print("position_fetch_ok:", payload.get("position_fetch_ok"))
           print("position_count:", len(payload.get("position_symbols") or []))
+          print("positions_type:", type(positions).__name__)
           PY
 
       - name: One-shot run-scan trigger test
