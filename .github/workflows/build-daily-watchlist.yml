@@ -9,6 +9,7 @@ on:
     paths:
       - '.github/workflows/build-daily-watchlist.yml'
       - 'build_daily_watchlist.py'
+      - 'watchlist-trigger.txt'
 
 permissions:
   contents: write
