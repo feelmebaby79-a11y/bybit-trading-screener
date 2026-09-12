@@ -79,42 +79,26 @@ jobs:
               "https://bybit-trading-screener."
               "feelmebaby79.workers.dev"
           )
-
-          WORKER_ACCESS_KEY = os.environ.get(
-              "WORKER_ACCESS_KEY",
-              ""
-          ).strip()
+          WORKER_ACCESS_KEY = os.environ.get("WORKER_ACCESS_KEY", "").strip()
 
           def read_csv(path):
               with open(path, "r", encoding="utf-8-sig") as f:
                   return list(csv.DictReader(f))
 
           def convert_value(value):
-              if value is None or value == "":
-                  return None
+              if value is None or value == "": return None
               lower = str(value).lower()
-              if lower == "true":
-                  return True
-              if lower == "false":
-                  return False
-              try:
-                  return float(value)
-              except (ValueError, TypeError):
-                  return value
+              if lower == "true": return True
+              if lower == "false": return False
+              try: return float(value)
+              except (ValueError, TypeError): return value
 
           def clean(rows):
-              return [
-                  {key: convert_value(value) for key, value in row.items()}
-                  for row in rows
-              ]
+              return [{key: convert_value(value) for key, value in row.items()} for row in rows]
 
           def fetch_json(url, headers=None, timeout=30):
-              request_headers = {
-                  "Accept": "application/json",
-                  "User-Agent": "bybit-trading-screener-github-actions",
-              }
-              if headers:
-                  request_headers.update(headers)
+              request_headers = {"Accept":"application/json","User-Agent":"bybit-trading-screener-github-actions"}
+              if headers: request_headers.update(headers)
               request = urllib.request.Request(url, headers=request_headers)
               with urllib.request.urlopen(request, timeout=timeout) as response:
                   return json.loads(response.read().decode("utf-8"))
@@ -122,148 +106,56 @@ jobs:
           def fetch_position_symbols():
               if not WORKER_ACCESS_KEY:
                   raise RuntimeError("WORKER_ACCESS_KEY GitHub secret is missing")
-
-              payload = fetch_json(
-                  f"{WORKER_BASE}/position-symbols",
-                  headers={
-                      "Authorization": "Bearer " + WORKER_ACCESS_KEY
-                  },
-              )
-
+              payload = fetch_json(f"{WORKER_BASE}/position-symbols", headers={"Authorization":"Bearer " + WORKER_ACCESS_KEY})
               if not payload.get("ok"):
-                  raise RuntimeError(
-                      "Position symbol fetch failed: " + str(payload)
-                  )
-
+                  raise RuntimeError("Position symbol fetch failed: " + str(payload))
               symbols = payload.get("symbols", [])
-              if not isinstance(symbols, list):
-                  raise RuntimeError("Invalid position symbols payload")
-
-              result = []
-              for symbol in symbols:
-                  symbol = str(symbol).strip().upper()
-                  if symbol and symbol.endswith("USDT"):
-                      result.append(symbol)
-
-              return sorted(set(result))
+              if not isinstance(symbols, list): raise RuntimeError("Invalid position symbols payload")
+              return sorted(set(str(s).strip().upper() for s in symbols if str(s).strip().upper().endswith("USDT")))
 
           def fetch_position_market(symbol):
               payload = fetch_json(f"{WORKER_BASE}/?symbol={symbol}")
-              if not payload.get("ok"):
-                  raise RuntimeError(
-                      f"Market fetch failed for {symbol}: {payload}"
-                  )
+              if not payload.get("ok"): raise RuntimeError(f"Market fetch failed for {symbol}: {payload}")
               return payload
 
           full = clean(read_csv("scan_results.csv"))
           longs = clean(read_csv("scan_results_long.csv"))
           shorts = clean(read_csv("scan_results_short.csv"))
-
-          analysis_by_symbol = {}
-          for row in full:
-              symbol = row.get("symbol")
-              if symbol:
-                  analysis_by_symbol[str(symbol).upper()] = row
+          analysis_by_symbol = {str(r.get("symbol")).upper(): r for r in full if r.get("symbol")}
 
           try:
-              position_symbols = fetch_position_symbols()
-              position_fetch_ok = True
-              position_fetch_error = None
+              position_symbols = fetch_position_symbols(); position_fetch_ok = True; position_fetch_error = None
           except Exception as exc:
-              position_symbols = []
-              position_fetch_ok = False
-              position_fetch_error = str(exc)
+              position_symbols = []; position_fetch_ok = False; position_fetch_error = str(exc)
 
           print("Current Bybit positions:", position_symbols)
-
           positions = {}
           for symbol in position_symbols:
               try:
-                  market = fetch_position_market(symbol)
-                  market_ok = True
-                  market_error = None
+                  market = fetch_position_market(symbol); market_ok = True; market_error = None
               except Exception as exc:
-                  market = None
-                  market_ok = False
-                  market_error = str(exc)
+                  market = None; market_ok = False; market_error = str(exc)
+              positions[symbol] = {"symbol":symbol,"in_recommendation_scan":symbol in analysis_by_symbol,"analysis":analysis_by_symbol.get(symbol),"market":market,"market_ok":market_ok,"market_error":market_error}
 
-              positions[symbol] = {
-                  "symbol": symbol,
-                  "in_recommendation_scan": symbol in analysis_by_symbol,
-                  "analysis": analysis_by_symbol.get(symbol),
-                  "market": market,
-                  "market_ok": market_ok,
-                  "market_error": market_error,
-              }
-
-          data = {
-              "ok": True,
-              "generated_at": datetime.now(timezone.utc).isoformat(),
-              "source": "Bybit V5 via Cloudflare",
-              "scan_method": "1D > 4H > 1H > 15m > 5m + BTC relative strength",
-              "universe_count": len(full),
-              "position_fetch_ok": position_fetch_ok,
-              "position_fetch_error": position_fetch_error,
-              "position_count": len(position_symbols),
-              "position_symbols": position_symbols,
-              "positions": positions,
-              "longs": longs,
-              "shorts": shorts,
-          }
-
+          data = {"ok":True,"generated_at":datetime.now(timezone.utc).isoformat(),"source":"Bybit V5 via Cloudflare","scan_method":"1D > 4H > 1H > 15m > 5m + BTC relative strength","universe_count":len(full),"position_fetch_ok":position_fetch_ok,"position_fetch_error":position_fetch_error,"position_count":len(position_symbols),"position_symbols":position_symbols,"positions":positions,"longs":longs,"shorts":shorts}
           with open("latest/scan.json", "w", encoding="utf-8") as f:
               json.dump(data, f, ensure_ascii=False, indent=2)
-
           print("Created latest/scan.json")
-          print("Universe:", len(full))
-          print("Long candidates:", len(longs))
-          print("Short candidates:", len(shorts))
-          print("Position discovery:", position_fetch_ok)
-
-          if position_fetch_error:
-              print("Position discovery error:", position_fetch_error)
-
-          print("Position count:", len(position_symbols))
-
+          print("Universe:", len(full)); print("Long candidates:", len(longs)); print("Short candidates:", len(shorts)); print("Position discovery:", position_fetch_ok); print("Position count:", len(position_symbols))
+          if position_fetch_error: print("Position discovery error:", position_fetch_error)
           for symbol in position_symbols:
-              item = positions[symbol]
-              print(
-                  "Position:",
-                  symbol,
-                  "| recommendation universe:",
-                  item["in_recommendation_scan"],
-                  "| 5TF market:",
-                  item["market_ok"],
-              )
+              item=positions[symbol]; print("Position:",symbol,"| recommendation universe:",item["in_recommendation_scan"],"| 5TF market:",item["market_ok"])
           PY
 
       - name: Create Pages site
         run: |
           mkdir -p public/latest
-
           cp latest/scan.json public/latest/scan.json
           cp latest/scan_results.csv public/latest/scan_results.csv
           cp latest/scan_results_long.csv public/latest/scan_results_long.csv
           cp latest/scan_results_short.csv public/latest/scan_results_short.csv
-
           cat > public/index.html <<'EOF'
-          <!doctype html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <title>Bybit HTF LTF Screener</title>
-          </head>
-
-          <body>
-            <h1>Bybit HTF/LTF Screener</h1>
-            <p>Latest scan is available.</p>
-            <p>
-              <a href="./latest/scan.json">
-                Open latest scan.json
-              </a>
-            </p>
-          </body>
-          </html>
+          <!doctype html><html><head><meta charset="utf-8"><title>Bybit HTF LTF Screener</title></head><body><h1>Bybit HTF/LTF Screener</h1><p>Latest scan is available.</p><p><a href="./latest/scan.json">Open latest scan.json</a></p></body></html>
           EOF
 
       - name: Save latest results to repository
@@ -271,14 +163,35 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git add latest/
+          # Preserve this run's generated scan files outside the worktree so a
+          # concurrent watchlist commit can be rebased without overwriting them.
+          tmpdir="$(mktemp -d)"
+          cp -a latest/. "$tmpdir/"
 
-          if git diff --cached --quiet; then
-            echo "No repository changes"
-          else
+          for attempt in 1 2 3 4 5; do
+            cp -a "$tmpdir/." latest/
+            git add latest/
+            if git diff --cached --quiet; then
+              echo "No repository changes"
+              break
+            fi
+
             git commit -m "Update latest Bybit scan"
-            git push origin HEAD:main
-          fi
+            if git push origin HEAD:main; then
+              echo "Scan results pushed successfully"
+              break
+            fi
+
+            if [ "$attempt" -eq 5 ]; then
+              echo "Failed to push scan results after 5 attempts"
+              exit 1
+            fi
+
+            echo "Concurrent main update detected; rebasing and retrying ($attempt/5)"
+            git reset --hard HEAD~1
+            git fetch origin main
+            git reset --hard origin/main
+          done
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
