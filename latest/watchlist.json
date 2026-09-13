@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 11,
-  "updated_at": "2026-09-12T03:31:03.988843+00:00",
+  "updated_at": "2026-09-13T00:24:29.477909+00:00",
   "policy": {
     "mode": "CORE_PLUS_CURRENT_POSITIONS_PLUS_DAILY_RECOMMENDATIONS",
     "default_symbols": [
@@ -36,115 +36,115 @@
   "items": [
     {
       "symbol": "BTCUSDT",
-      "direction": "LONG",
-      "score": 52,
+      "direction": "SHORT",
+      "score": 59,
       "score_scale": 100,
-      "raw_score": 6.6478,
+      "raw_score": 7.6785,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     },
     {
       "symbol": "ETHUSDT",
       "direction": "LONG",
-      "score": 58,
+      "score": 50,
       "score_scale": 100,
-      "raw_score": 9.5265,
+      "raw_score": 6.5841,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     },
     {
       "symbol": "XRPUSDT",
       "direction": "SHORT",
-      "score": 58,
+      "score": 66,
       "score_scale": 100,
-      "raw_score": 7.008,
+      "raw_score": 14.6556,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     },
     {
       "symbol": "SOLUSDT",
-      "direction": "LONG",
-      "score": 48,
+      "direction": "SHORT",
+      "score": 55,
       "score_scale": 100,
-      "raw_score": 4.7089,
+      "raw_score": 10.755,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     },
     {
       "symbol": "BNBUSDT",
       "direction": "LONG",
-      "score": 66,
+      "score": 50,
       "score_scale": 100,
-      "raw_score": 15.4346,
+      "raw_score": 6.7621,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
+    },
+    {
+      "symbol": "ARBUSDT",
+      "direction": "LONG",
+      "score": 70,
+      "score_scale": 100,
+      "raw_score": 17.2975,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
+      "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     },
     {
       "symbol": "UNIUSDT",
       "direction": "LONG",
-      "score": 71,
+      "score": 69,
       "score_scale": 100,
-      "raw_score": 18.0938,
+      "raw_score": 21.3652,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     },
     {
-      "symbol": "ADAUSDT",
+      "symbol": "ONDOUSDT",
       "direction": "LONG",
-      "score": 69,
+      "score": 68,
       "score_scale": 100,
-      "raw_score": 17.3112,
+      "raw_score": 15.4884,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
-    },
-    {
-      "symbol": "XAUTUSDT",
-      "direction": "SHORT",
-      "score": 69,
-      "score_scale": 100,
-      "raw_score": 16.2145,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-12T03:31:03.988843+00:00"
+      "updated_at": "2026-09-13T00:24:29.477909+00:00"
     }
   ]
 }
