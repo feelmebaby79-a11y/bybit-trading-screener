@@ -45,7 +45,7 @@ jobs:
 
       - name: Run screener
         run: |
-          python bybit_htf_ltf_screener.py \
+          python run_structural_screener.py \
             --max-symbols 160 \
             --min-turnover 5000000 \
             --top 15 \
