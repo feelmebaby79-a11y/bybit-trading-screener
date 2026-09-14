@@ -1,6 +1,6 @@
 {
   "name": "bybit-trading-screener",
-  "main": "worker_with_oi.js",
+  "main": "worker_batched.js",
   "compatibility_date": "2026-09-02",
   "placement": {
     "region": "aws:ap-northeast-1"
