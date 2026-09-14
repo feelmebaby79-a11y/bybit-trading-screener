@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 14,
-  "updated_at": "2026-09-14T09:25:12.094735+00:00",
+  "updated_at": "2026-09-14T09:46:22.614351+00:00",
   "policy": {
     "mode": "CORE_PLUS_CURRENT_POSITIONS_PLUS_DAILY_RECOMMENDATIONS_PLUS_EARLY_MOMENTUM",
     "default_symbols": [
@@ -52,7 +52,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "ETHUSDT",
@@ -66,7 +66,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "XRPUSDT",
@@ -80,7 +80,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "SOLUSDT",
@@ -94,7 +94,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "BNBUSDT",
@@ -108,7 +108,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "ASTERUSDT",
@@ -122,7 +122,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "MSTRUSDT",
@@ -136,7 +136,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "NEOUSDT",
@@ -150,7 +150,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "POWRUSDT",
@@ -164,7 +164,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score and replaced by the next daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "XAUUSDT",
@@ -178,7 +178,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score and replaced by the next daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "1000BONKUSDT",
@@ -192,7 +192,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score and replaced by the next daily scan.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00"
+      "updated_at": "2026-09-14T09:46:22.614351+00:00"
     },
     {
       "symbol": "AKEUSDT",
@@ -206,7 +206,7 @@
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "POLYX-style early momentum candidate: HTF structure intact, 1H correction and 15m re-turn; ENTRY still requires the strict 5m trigger.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00",
+      "updated_at": "2026-09-14T09:46:22.614351+00:00",
       "early_momentum": true,
       "early_momentum_score": 14.0,
       "early_momentum_reasons": [
@@ -229,7 +229,7 @@
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "POLYX-style early momentum candidate: HTF structure intact, 1H correction and 15m re-turn; ENTRY still requires the strict 5m trigger.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00",
+      "updated_at": "2026-09-14T09:46:22.614351+00:00",
       "early_momentum": true,
       "early_momentum_score": 13.0,
       "early_momentum_reasons": [
@@ -251,7 +251,7 @@
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "POLYX-style early momentum candidate: HTF structure intact, 1H correction and 15m re-turn; ENTRY still requires the strict 5m trigger.",
-      "updated_at": "2026-09-14T09:25:12.094735+00:00",
+      "updated_at": "2026-09-14T09:46:22.614351+00:00",
       "early_momentum": true,
       "early_momentum_score": 11.0,
       "early_momentum_reasons": [
