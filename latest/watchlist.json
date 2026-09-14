@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "version": 12,
-  "updated_at": "2026-09-14T02:49:33.020817+00:00",
+  "version": 13,
+  "updated_at": "2026-09-14T02:51:00.211831+00:00",
   "policy": {
     "mode": "CORE_PLUS_CURRENT_POSITIONS_PLUS_DAILY_RECOMMENDATIONS",
     "default_symbols": [
@@ -12,7 +12,7 @@
       "BNBUSDT"
     ],
     "include_current_positions": true,
-    "position_source": "latest/scan.json",
+    "position_source": "scan.json",
     "position_fetch_ok": true,
     "position_symbols": [
       "ASTERUSDT",
@@ -20,7 +20,6 @@
       "MSTRUSDT",
       "NEOUSDT"
     ],
-    "position_side_fallback": "scanner_direction_when_position_record_side_missing",
     "daily_recommendation_count": 3,
     "daily_refresh_time_kst": "09:00",
     "daily_recommendations_replace_each_day": true,
@@ -51,7 +50,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "ETHUSDT",
@@ -65,7 +64,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "XRPUSDT",
@@ -79,7 +78,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "SOLUSDT",
@@ -93,7 +92,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "BNBUSDT",
@@ -107,7 +106,7 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "ASTERUSDT",
@@ -121,7 +120,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "MSTRUSDT",
@@ -135,35 +134,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
-    },
-    {
-      "symbol": "NEOUSDT",
-      "direction": "LONG",
-      "score": null,
-      "score_scale": 100,
-      "raw_score": null,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "CURRENT_POSITION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
-    },
-    {
-      "symbol": "NEOUSDT",
-      "direction": "SHORT",
-      "score": null,
-      "score_scale": 100,
-      "raw_score": null,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "CURRENT_POSITION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Current Bybit open position; always included while the position remains open, regardless of scanner rank.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "SPCXUSDT",
@@ -177,7 +148,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score and replaced by the next daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "XAGUSDT",
@@ -191,7 +162,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score and replaced by the next daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     },
     {
       "symbol": "POLYXUSDT",
@@ -205,7 +176,7 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
       "note": "Daily recommendation; selected and ranked by the 100-point score and replaced by the next daily scan.",
-      "updated_at": "2026-09-14T02:49:33.020817+00:00"
+      "updated_at": "2026-09-14T02:51:00.211831+00:00"
     }
   ]
 }
