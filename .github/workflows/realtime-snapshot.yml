@@ -25,18 +25,61 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Fetch realtime and entry watch
+      - name: Fetch and merge realtime and entry shards
         run: |
           set -euo pipefail
           mkdir -p latest
-          curl --fail --silent --show-error \
-            'https://bybit-trading-screener.feelmebaby79.workers.dev/realtime-watch' \
-            -o latest/realtime_watch.json
-          curl --fail --silent --show-error \
-            'https://bybit-trading-screener.feelmebaby79.workers.dev/entry-watch' \
-            -o latest/entry_watch.json
-          python -m json.tool latest/realtime_watch.json >/dev/null
-          python -m json.tool latest/entry_watch.json >/dev/null
+          python - <<'PY'
+          import json
+          import urllib.request
+          from datetime import datetime, timezone
+
+          BASE = 'https://bybit-trading-screener.feelmebaby79.workers.dev'
+          SHARDS = 3
+
+          def fetch_json(url):
+              req = urllib.request.Request(url, headers={'Accept': 'application/json', 'User-Agent': 'realtime-shard-snapshot'})
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  return json.loads(r.read().decode('utf-8'))
+
+          def merge(kind):
+              parts = []
+              for shard in range(SHARDS):
+                  p = fetch_json(f'{BASE}/{kind}?shard={shard}&shards={SHARDS}')
+                  if p.get('ok') is not True:
+                      raise SystemExit(f'{kind} shard {shard}: ok != true: {p!r}')
+                  if int(p.get('error_count') or 0) != 0:
+                      raise SystemExit(f'{kind} shard {shard}: error_count={p.get("error_count")}')
+                  parts.append(p)
+
+              items = [x for p in parts for x in (p.get('items') or [])]
+              key = 'arrivals' if kind == 'realtime-watch' else 'candidates'
+              special = [x for p in parts for x in (p.get(key) or [])]
+              watch_times = {p.get('watchlist_updated_at') for p in parts}
+              if len(watch_times) != 1:
+                  raise SystemExit(f'{kind}: inconsistent watchlist timestamps: {watch_times}')
+              generated = max(p.get('generated_at') for p in parts)
+              out = {
+                  'ok': True,
+                  'generated_at': generated,
+                  'watchlist_updated_at': parts[0].get('watchlist_updated_at'),
+                  'execution_mode': 'sharded_merge',
+                  'shard_count': SHARDS,
+                  'error_count': 0,
+                  key: special,
+                  'items': items,
+              }
+              return out
+
+          realtime = merge('realtime-watch')
+          entry = merge('entry-watch')
+          with open('latest/realtime_watch.json', 'w', encoding='utf-8') as f:
+              json.dump(realtime, f, ensure_ascii=False, separators=(',', ':'))
+          with open('latest/entry_watch.json', 'w', encoding='utf-8') as f:
+              json.dump(entry, f, ensure_ascii=False, separators=(',', ':'))
+          print('realtime items', len(realtime['items']))
+          print('entry items', len(entry['items']))
+          PY
 
       - name: Validate freshness and watchlist consistency
         run: |
@@ -53,7 +96,9 @@ jobs:
 
           for name, payload in [('realtime_watch', realtime), ('entry_watch', entry)]:
               if payload.get('ok') is not True:
-                  raise SystemExit(f'{name}: ok != true: {payload!r}')
+                  raise SystemExit(f'{name}: ok != true')
+              if int(payload.get('error_count') or 0) != 0:
+                  raise SystemExit(f'{name}: error_count={payload.get("error_count")}')
               generated = payload.get('generated_at')
               if not generated:
                   raise SystemExit(f'{name}: generated_at missing')
@@ -62,9 +107,10 @@ jobs:
               if age > 600:
                   raise SystemExit(f'{name}: stale generated_at age={age:.0f}s')
               if payload.get('watchlist_updated_at') != watch.get('updated_at'):
-                  raise SystemExit(
-                      f"{name}: watchlist mismatch worker={payload.get('watchlist_updated_at')} repo={watch.get('updated_at')}"
-                  )
+                  raise SystemExit(f'{name}: watchlist mismatch')
+              errors = [x for x in (payload.get('items') or []) if x.get('error')]
+              if errors:
+                  raise SystemExit(f'{name}: item errors: {errors[:3]!r}')
               print(name, 'OK', generated, 'items=', len(payload.get('items') or []))
           PY
 
@@ -77,7 +123,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No snapshot changes"
           else
-            git commit -m "Update realtime and entry snapshots"
+            git commit -m "Update sharded realtime and entry snapshots"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
