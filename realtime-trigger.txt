@@ -1,1 +1,1 @@
-2026-09-10T08:12:00+09:00 preflight snapshot
+2026-09-14T11:45:00+09:00 force realtime POI/ENTRY refresh
