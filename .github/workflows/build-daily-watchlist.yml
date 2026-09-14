@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: build-daily-watchlist-main
@@ -68,13 +69,12 @@ jobs:
             git push origin HEAD:main
           fi
 
-      - name: Trigger realtime monitoring immediately
+      - name: Dispatch realtime monitoring immediately
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Do not wait for the 5-minute snapshot cron. Every successful
-          # watchlist rebuild immediately wakes the realtime/entry pipeline.
-          git pull --rebase origin main
-          printf '%s immediate refresh after watchlist update\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > realtime-trigger.txt
-          git add realtime-trigger.txt
-          git commit -m "Trigger immediate realtime refresh after watchlist update"
-          git push origin HEAD:main
+          # workflow_dispatch is intentionally used here because GitHub suppresses
+          # workflows triggered by normal pushes made with GITHUB_TOKEN.
+          gh workflow run realtime-snapshot.yml --ref main
+          echo "Realtime snapshot dispatched immediately after watchlist refresh"
