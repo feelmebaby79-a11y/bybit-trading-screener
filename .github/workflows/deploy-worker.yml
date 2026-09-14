@@ -33,12 +33,10 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
-          WORKER_GITHUB_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
         run: |
           test -n "$CLOUDFLARE_API_TOKEN" || (echo 'Missing CLOUDFLARE_API_TOKEN' && exit 11)
           test -n "$CLOUDFLARE_ACCOUNT_ID" || (echo 'Missing CLOUDFLARE_ACCOUNT_ID' && exit 12)
           test -n "$WORKER_ACCESS_KEY" || (echo 'Missing WORKER_ACCESS_KEY' && exit 13)
-          test -n "$WORKER_GITHUB_TOKEN" || (echo 'Missing WORKER_GITHUB_TOKEN' && exit 14)
 
       - name: Deploy Worker
         env:
@@ -54,96 +52,60 @@ jobs:
         run: |
           printf '%s' "$WORKER_ACCESS_KEY" | npx wrangler@latest secret put WORKER_ACCESS_KEY
 
-      - name: Sync Worker GitHub token
+      - name: Sync Worker GitHub token if configured
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WORKER_GITHUB_TOKEN: ${{ secrets.WORKER_GITHUB_TOKEN }}
         run: |
-          printf '%s' "$WORKER_GITHUB_TOKEN" | npx wrangler@latest secret put GITHUB_TOKEN
-          echo 'Worker GITHUB_TOKEN synchronized.'
+          if [ -n "$WORKER_GITHUB_TOKEN" ]; then
+            printf '%s' "$WORKER_GITHUB_TOKEN" | npx wrangler@latest secret put GITHUB_TOKEN
+            echo 'Worker GITHUB_TOKEN synchronized.'
+          else
+            echo 'WORKER_GITHUB_TOKEN not configured; preserving existing Worker secret.'
+          fi
 
       - name: Smoke test authenticated position lookup
         env:
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
         run: |
           python - <<'PY'
-          import json
-          import os
-          import urllib.request
-
+          import json, os, urllib.request
           url = "https://bybit-trading-screener.feelmebaby79.workers.dev/position-symbols"
-          req = urllib.request.Request(
-              url,
-              headers={
-                  "Accept": "application/json",
-                  "Authorization": "Bearer " + os.environ["WORKER_ACCESS_KEY"],
-                  "User-Agent": "bybit-worker-deploy-smoke-test",
-              },
-          )
+          req = urllib.request.Request(url, headers={"Accept":"application/json","Authorization":"Bearer "+os.environ["WORKER_ACCESS_KEY"],"User-Agent":"bybit-worker-deploy-smoke-test"})
           with urllib.request.urlopen(req, timeout=30) as response:
-              payload = json.loads(response.read().decode("utf-8"))
-          if not payload.get("ok"):
-              raise SystemExit("position-symbols smoke test failed: " + repr(payload))
+              payload=json.loads(response.read().decode("utf-8"))
+          if not payload.get("ok"): raise SystemExit("position-symbols smoke test failed: "+repr(payload))
+          if not isinstance(payload.get("positions"), list): raise SystemExit("position-symbols positions payload missing")
           print("position-symbols smoke test OK")
-          print("positionCount:", payload.get("positionCount"))
-          print("symbols:", payload.get("symbols"))
+          print("positions:", [(x.get("symbol"), x.get("side")) for x in payload.get("positions", [])])
           PY
 
       - name: Smoke test scan endpoint
         run: |
           python - <<'PY'
-          import json
-          import urllib.request
-
-          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/scan"
-          req = urllib.request.Request(
-              url,
-              headers={
-                  "Accept": "application/json",
-                  "User-Agent": "bybit-worker-scan-smoke-test",
-              },
-          )
-          with urllib.request.urlopen(req, timeout=30) as response:
-              payload = json.loads(response.read().decode("utf-8"))
-          if not payload.get("generated_at"):
-              raise SystemExit("scan smoke test failed: generated_at missing")
-          if "position_fetch_ok" not in payload:
-              raise SystemExit("scan smoke test failed: position_fetch_ok missing")
-          if not isinstance(payload.get("position_symbols"), list):
-              raise SystemExit("scan smoke test failed: position_symbols is not a list")
-          positions = payload.get("positions")
-          if not isinstance(positions, (list, dict)):
-              raise SystemExit("scan smoke test failed: positions is neither a list nor an object")
+          import json, urllib.request
+          url="https://bybit-trading-screener.feelmebaby79.workers.dev/scan"
+          req=urllib.request.Request(url,headers={"Accept":"application/json","User-Agent":"bybit-worker-scan-smoke-test"})
+          with urllib.request.urlopen(req,timeout=30) as response:
+              payload=json.loads(response.read().decode("utf-8"))
+          if not payload.get("generated_at"): raise SystemExit("scan smoke test failed: generated_at missing")
+          if "position_fetch_ok" not in payload: raise SystemExit("scan smoke test failed: position_fetch_ok missing")
+          if not isinstance(payload.get("position_symbols"),list): raise SystemExit("scan smoke test failed: position_symbols is not a list")
           print("scan endpoint smoke test OK")
-          print("generated_at:", payload.get("generated_at"))
-          print("position_fetch_ok:", payload.get("position_fetch_ok"))
-          print("position_count:", len(payload.get("position_symbols") or []))
-          print("positions_type:", type(positions).__name__)
           PY
 
       - name: One-shot run-scan trigger test
         if: contains(github.event.head_commit.message, '[scan-smoke]')
         run: |
           python - <<'PY'
-          import json
-          import urllib.request
-
-          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/run-scan"
-          req = urllib.request.Request(
-              url,
-              headers={
-                  "Accept": "application/json",
-                  "User-Agent": "bybit-worker-run-scan-smoke-test",
-              },
-          )
-          with urllib.request.urlopen(req, timeout=30) as response:
-              payload = json.loads(response.read().decode("utf-8"))
-          if not payload.get("ok") or payload.get("status") != "started":
-              raise SystemExit("run-scan trigger failed: " + repr(payload))
+          import json, urllib.request
+          url="https://bybit-trading-screener.feelmebaby79.workers.dev/run-scan"
+          req=urllib.request.Request(url,headers={"Accept":"application/json","User-Agent":"bybit-worker-run-scan-smoke-test"})
+          with urllib.request.urlopen(req,timeout=30) as response:
+              payload=json.loads(response.read().decode("utf-8"))
+          if not payload.get("ok") or payload.get("status")!="started": raise SystemExit("run-scan trigger failed: "+repr(payload))
           print("run-scan trigger OK")
-          print("workflow:", payload.get("workflow"))
-          print("startedAt:", payload.get("startedAt"))
           PY
 
       - name: Send one-shot Telegram transport test
@@ -152,24 +114,11 @@ jobs:
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
         run: |
           python - <<'PY'
-          import json
-          import os
-          import urllib.request
-
-          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/test-poi-telegram?symbol=BTCUSDT"
-          req = urllib.request.Request(
-              url,
-              method="POST",
-              headers={
-                  "Accept": "application/json",
-                  "Authorization": "Bearer " + os.environ["WORKER_ACCESS_KEY"],
-                  "User-Agent": "bybit-worker-telegram-test",
-              },
-          )
-          with urllib.request.urlopen(req, timeout=30) as response:
-              payload = json.loads(response.read().decode("utf-8"))
-          if not payload.get("ok") or not payload.get("telegram_sent"):
-              raise SystemExit("telegram test failed: " + repr(payload))
+          import json, os, urllib.request
+          url="https://bybit-trading-screener.feelmebaby79.workers.dev/test-poi-telegram?symbol=BTCUSDT"
+          req=urllib.request.Request(url,method="POST",headers={"Accept":"application/json","Authorization":"Bearer "+os.environ["WORKER_ACCESS_KEY"],"User-Agent":"bybit-worker-telegram-test"})
+          with urllib.request.urlopen(req,timeout=30) as response:
+              payload=json.loads(response.read().decode("utf-8"))
+          if not payload.get("ok") or not payload.get("telegram_sent"): raise SystemExit("telegram test failed: "+repr(payload))
           print("telegram transport test OK")
-          print("symbol:", payload.get("symbol"))
           PY
