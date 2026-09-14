@@ -5,9 +5,15 @@ on:
     paths:
       - 'realtime-trigger.txt'
   workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: write
+
+concurrency:
+  group: realtime-poi-snapshot
+  cancel-in-progress: false
 
 jobs:
   snapshot:
@@ -21,18 +27,50 @@ jobs:
 
       - name: Fetch realtime and entry watch
         run: |
+          set -euo pipefail
           mkdir -p latest
           curl --fail --silent --show-error \
-            https://bybit-trading-screener.feelmebaby79.workers.dev/realtime-watch \
+            'https://bybit-trading-screener.feelmebaby79.workers.dev/realtime-watch' \
             -o latest/realtime_watch.json
           curl --fail --silent --show-error \
-            https://bybit-trading-screener.feelmebaby79.workers.dev/entry-watch \
+            'https://bybit-trading-screener.feelmebaby79.workers.dev/entry-watch' \
             -o latest/entry_watch.json
           python -m json.tool latest/realtime_watch.json >/dev/null
           python -m json.tool latest/entry_watch.json >/dev/null
 
+      - name: Validate freshness and watchlist consistency
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+
+          with open('latest/watchlist.json', encoding='utf-8-sig') as f:
+              watch = json.load(f)
+          with open('latest/realtime_watch.json', encoding='utf-8-sig') as f:
+              realtime = json.load(f)
+          with open('latest/entry_watch.json', encoding='utf-8-sig') as f:
+              entry = json.load(f)
+
+          for name, payload in [('realtime_watch', realtime), ('entry_watch', entry)]:
+              if payload.get('ok') is not True:
+                  raise SystemExit(f'{name}: ok != true: {payload!r}')
+              generated = payload.get('generated_at')
+              if not generated:
+                  raise SystemExit(f'{name}: generated_at missing')
+              dt = datetime.fromisoformat(generated.replace('Z', '+00:00'))
+              age = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds()
+              if age > 600:
+                  raise SystemExit(f'{name}: stale generated_at age={age:.0f}s')
+              if payload.get('watchlist_updated_at') != watch.get('updated_at'):
+                  raise SystemExit(
+                      f"{name}: watchlist mismatch worker={payload.get('watchlist_updated_at')} repo={watch.get('updated_at')}"
+                  )
+              print(name, 'OK', generated, 'items=', len(payload.get('items') or []))
+          PY
+
       - name: Save snapshot
         run: |
+          set -euo pipefail
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add latest/realtime_watch.json latest/entry_watch.json
@@ -40,5 +78,6 @@ jobs:
             echo "No snapshot changes"
           else
             git commit -m "Update realtime and entry snapshots"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
