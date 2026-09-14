@@ -1,150 +1,38 @@
 {
-  "ok": true,
-  "version": 11,
-  "updated_at": "2026-09-13T23:55:55.106738+00:00",
+  "updated_at": "2026-09-14T09:00:04+09:00",
   "policy": {
-    "mode": "CORE_PLUS_CURRENT_POSITIONS_PLUS_DAILY_RECOMMENDATIONS",
-    "default_symbols": [
-      "BTCUSDT",
-      "ETHUSDT",
-      "XRPUSDT",
-      "SOLUSDT",
-      "BNBUSDT"
-    ],
-    "include_current_positions": true,
-    "position_source": "latest/scan.json",
-    "position_fetch_ok": true,
-    "position_symbols": [],
-    "daily_recommendation_count": 3,
-    "daily_refresh_time_kst": "09:00",
-    "daily_recommendations_replace_each_day": true,
-    "score_scale": 100,
-    "score_field": "score",
-    "ranking_field": "score",
-    "raw_score_field": "raw_score",
-    "no_retrace_no_trade": true,
-    "poi_arrival_is_entry": false,
-    "poi_timeframes": [
-      "1H",
-      "15m"
-    ],
+    "poi_timeframes": ["1H", "15m"],
     "entry_timeframe": "5m",
-    "entry_model": "1H/15m POI -> touch activation -> 5m liquidity sweep -> 5m MSS/CHoCH + displacement -> 5m strict FVG/validated OB retracement -> live RR >= 1.5",
-    "minimum_rr": 1.5,
-    "note": "Current open positions are always included while position_fetch_ok is true. Daily recommendations exclude symbols already included as current positions."
+    "no_retrace_no_trade": true,
+    "poi_arrival_is_entry": false
   },
   "items": [
-    {
-      "symbol": "BTCUSDT",
-      "direction": "SHORT",
-      "score": 60,
-      "score_scale": 100,
-      "raw_score": 11.8308,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DEFAULT",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
-    },
-    {
-      "symbol": "ETHUSDT",
-      "direction": "LONG",
-      "score": 48,
-      "score_scale": 100,
-      "raw_score": 2.8756,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DEFAULT",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
-    },
-    {
-      "symbol": "XRPUSDT",
-      "direction": "SHORT",
-      "score": 49,
-      "score_scale": 100,
-      "raw_score": 6.0469,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DEFAULT",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
-    },
-    {
-      "symbol": "SOLUSDT",
-      "direction": "SHORT",
-      "score": 48,
-      "score_scale": 100,
-      "raw_score": 7.6775,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DEFAULT",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
-    },
-    {
-      "symbol": "BNBUSDT",
-      "direction": "LONG",
-      "score": 41,
-      "score_scale": 100,
-      "raw_score": 1.2164,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DEFAULT",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Core default symbol; always monitored. Direction and 100-point score are refreshed from the 09:00 KST daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
-    },
     {
       "symbol": "BZUSDT",
       "direction": "LONG",
       "score": 71,
-      "score_scale": 100,
-      "raw_score": 17.8034,
-      "poi_low": null,
-      "poi_high": null,
       "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
+      "poi_low": null,
+      "poi_high": null
     },
     {
       "symbol": "POLYXUSDT",
       "direction": "LONG",
       "score": 69,
-      "score_scale": 100,
-      "raw_score": 15.7004,
-      "poi_low": null,
-      "poi_high": null,
       "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
+      "poi_low": null,
+      "poi_high": null
     },
     {
       "symbol": "XPLUSDT",
       "direction": "SHORT",
       "score": 69,
-      "score_scale": 100,
-      "raw_score": 15.5708,
-      "poi_low": null,
-      "poi_high": null,
       "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB retracement",
-      "note": "Daily recommendation; selected and ranked by the 100-point score, refreshed at 09:00 KST and replaced by the next daily scan.",
-      "updated_at": "2026-09-13T23:55:55.106738+00:00"
+      "poi_low": null,
+      "poi_high": null
     }
   ]
 }
