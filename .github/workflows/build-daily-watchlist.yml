@@ -29,7 +29,29 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Fetch live Bybit positions
+        env:
+          WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
+        run: |
+          test -n "$WORKER_ACCESS_KEY" || (echo 'Missing WORKER_ACCESS_KEY' && exit 21)
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $WORKER_ACCESS_KEY" \
+            -H "Accept: application/json" \
+            https://bybit-trading-screener.feelmebaby79.workers.dev/position-symbols \
+            -o /tmp/bybit_positions.json
+          python - <<'PY'
+          import json
+          p=json.load(open('/tmp/bybit_positions.json'))
+          if not p.get('ok'):
+              raise SystemExit('live position snapshot failed')
+          if not isinstance(p.get('positions'), list):
+              raise SystemExit('positions list missing from Worker response')
+          print('live positions:', [(x.get('symbol'), x.get('side')) for x in p['positions']])
+          PY
+
       - name: Build watchlist
+        env:
+          POSITION_SNAPSHOT: /tmp/bybit_positions.json
         run: python build_daily_watchlist.py
 
       - name: Save watchlist
