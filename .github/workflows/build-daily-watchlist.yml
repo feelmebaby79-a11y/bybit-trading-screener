@@ -56,6 +56,7 @@ jobs:
 
       - name: Save watchlist
         run: |
+          set -euo pipefail
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add latest/watchlist.json
@@ -63,5 +64,17 @@ jobs:
             echo "No watchlist changes"
           else
             git commit -m "Refresh core plus daily watchlist"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
+
+      - name: Trigger realtime monitoring immediately
+        run: |
+          set -euo pipefail
+          # Do not wait for the 5-minute snapshot cron. Every successful
+          # watchlist rebuild immediately wakes the realtime/entry pipeline.
+          git pull --rebase origin main
+          printf '%s immediate refresh after watchlist update\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > realtime-trigger.txt
+          git add realtime-trigger.txt
+          git commit -m "Trigger immediate realtime refresh after watchlist update"
+          git push origin HEAD:main
