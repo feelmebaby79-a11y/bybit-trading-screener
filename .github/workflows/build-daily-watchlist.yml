@@ -9,6 +9,7 @@ on:
     paths:
       - '.github/workflows/build-daily-watchlist.yml'
       - 'build_daily_watchlist.py'
+      - 'storj_early_filter.py'
       - 'validate_watchlist_lifecycle.py'
       - 'watchlist-trigger.txt'
 
@@ -57,6 +58,9 @@ jobs:
         env:
           POSITION_SNAPSHOT: /tmp/bybit_positions.json
         run: python build_daily_watchlist.py
+
+      - name: Apply strict STORJ-type Early Momentum filter
+        run: python storj_early_filter.py
 
       - name: Lifecycle regression gate
         run: python validate_watchlist_lifecycle.py
