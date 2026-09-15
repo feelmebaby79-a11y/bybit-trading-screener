@@ -1,1 +1,1 @@
-2026-09-15T15:35:00+09:00 FORCE fresh full-universe scan for live briefing; rebuild watchlist v16 and entry monitoring; do not reuse stale artifacts
+2026-09-15T15:49:00+09:00 FORCE fresh full-universe scan after STORJ_TYPE_V2 fix; rebuild current recommendations only
