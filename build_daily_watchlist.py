@@ -7,7 +7,6 @@ MAX_DAILY_RECOMMENDATIONS=3
 EARLY_MOMENTUM_COUNT=3
 MIN_WATCH_SCORE=65
 INPUT=Path("latest/scan_results.csv"); SCAN_INPUT=Path("latest/scan.json"); OUTPUT=Path("latest/watchlist.json")
-ENTRY_STATE_INPUT=Path("latest/entry_watch.json")
 LIVE_POSITIONS_INPUT=Path(os.environ.get("POSITION_SNAPSHOT","/tmp/bybit_positions.json"))
 
 def num(v):
@@ -87,7 +86,7 @@ def add(sym,d,bucket,extra=None):
                 if (x["symbol"],x["direction"])==key:x.update(extra)
         return
     seen.add(key);row=by_symbol.get(sym);score=score_100(row,d)
-    note="Current Bybit open position; always included while open." if bucket=="CURRENT_POSITION" else "Touched setup retained until consumed/invalidated; ranking changes cannot drop active entry monitoring." if bucket=="PERSISTENT_SETUP" else "POLYX-style early momentum candidate; strict 5m trigger still required." if bucket=="EARLY_MOMENTUM" else "Daily recommendation selected by exact 100-point rubric." if bucket=="DAILY_RECOMMENDATION" else "Core default symbol; monitored continuously."
+    note="Current Bybit open position; always included while open." if bucket=="CURRENT_POSITION" else "POLYX-style early momentum candidate from the current scan; strict 5m trigger still required." if bucket=="EARLY_MOMENTUM" else "Daily recommendation selected from the current scan by exact 100-point rubric." if bucket=="DAILY_RECOMMENDATION" else "Core default symbol; monitored continuously."
     x={"symbol":sym,"direction":d,"score":score,"score_scale":100,"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","note":note,"updated_at":now}
     if extra:x.update(extra)
     items.append(x)
@@ -117,23 +116,13 @@ for sym,row in by_symbol.items():
 early.sort(reverse=True)
 for em,sc,sym,d,reasons in early[:EARLY_MOMENTUM_COUNT]:add(sym,d,"EARLY_MOMENTUM",{"early_momentum":True,"early_momentum_score":em,"early_momentum_reasons":reasons})
 
-# Lifecycle fix: once any ranked setup has actually touched a 1H/15m POI, keep monitoring it
-# even if a later scan removes it from the top-N ranking. Drop only when the prior entry state
-# marks it consumed/inactive. Preserve the exact touched POI and touch timestamp so the 5m
-# sweep -> MSS/displacement -> first FVG retracement sequence cannot be reset by reranking.
-if ENTRY_STATE_INPUT.exists():
-    try:
-        prior=json.loads(ENTRY_STATE_INPUT.read_text(encoding="utf-8"))
-        for p in prior.get("items",[]):
-            sym=str(p.get("symbol") or "").upper(); d=str(p.get("direction") or "").upper()
-            touched=p.get("poi_touch_start") is not None
-            eligible=p.get("bucket") in {"EARLY_MOMENTUM","DAILY_RECOMMENDATION","PERSISTENT_SETUP"}
-            active=p.get("status","ACTIVE")=="ACTIVE" and not truthy(p.get("consumed"))
-            if sym and d in {"LONG","SHORT"} and touched and eligible and active:
-                add(sym,d,"PERSISTENT_SETUP",{"persistent_setup":True,"origin_bucket":p.get("bucket"),"poi_low":p.get("poi_low"),"poi_high":p.get("poi_high"),"poi_tf":p.get("poi_tf"),"poi_source":p.get("poi_source"),"poi_created_at":p.get("poi_created_at"),"poi_id":p.get("poi_id"),"poi_touch_start":p.get("poi_touch_start"),"early_momentum":bool(p.get("early_momentum") or p.get("bucket")=="EARLY_MOMENTUM")})
-    except Exception as e:
-        print(f"persistent setup recovery skipped: {e}")
+# Fresh-scan-only policy:
+# Do NOT recover DAILY_RECOMMENDATION/EARLY_MOMENTUM/PERSISTENT_SETUP items from a prior
+# entry_watch.json. Every ranked recommendation must be regenerated from this scan's
+# scan_results.csv. This prevents stale symbols/POIs from being presented as new results.
+# Core defaults and actual open positions remain monitored by design, but are not ranked
+# recommendations unless the current scan independently selects them.
 
-payload={"ok":True,"version":16,"updated_at":now,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_RANKED_PLUS_PERSISTENT_TOUCHED_SETUPS","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"early_momentum_count":len([x for x in items if x.get("early_momentum") and x["bucket"]=="EARLY_MOMENTUM"]),"persistent_setup_count":len([x for x in items if x.get("persistent_setup")]),"persistent_after_poi_touch":True,"score_scale":100,"score_formula":{"HTF_alignment":25,"1H_structure_location":15,"15m_ICT":20,"5m_FVG_OB_retracement":15,"entry_location_chase_risk":10,"RR":10,"BTC_market_environment":5},"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"poi_timeframes":["1H","15m"],"entry_timeframe":"5m","entry_model":"1H/15m POI -> touch -> confirmed 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","minimum_rr":1.5},"items":items}
+payload={"ok":True,"version":17,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_RANKED","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"early_momentum_count":len([x for x in items if x.get("early_momentum") and x["bucket"]=="EARLY_MOMENTUM"]),"persistent_setup_count":0,"persistent_after_poi_touch":False,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"score_scale":100,"score_formula":{"HTF_alignment":25,"1H_structure_location":15,"15m_ICT":20,"5m_FVG_OB_retracement":15,"entry_location_chase_risk":10,"RR":10,"BTC_market_environment":5},"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"poi_timeframes":["1H","15m"],"entry_timeframe":"5m","entry_model":"1H/15m POI -> touch -> confirmed 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","minimum_rr":1.5},"items":items}
 OUTPUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-print(json.dumps({"ok":True,"version":16,"positions":position_symbols,"daily":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="DAILY_RECOMMENDATION"],"early":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="EARLY_MOMENTUM"],"persistent":[(x["symbol"],x["direction"],x.get("poi_touch_start")) for x in items if x.get("persistent_setup")]},ensure_ascii=False))
+print(json.dumps({"ok":True,"version":17,"scan_fresh_only":True,"positions":position_symbols,"daily":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="DAILY_RECOMMENDATION"],"early":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="EARLY_MOMENTUM"],"persistent":[]},ensure_ascii=False))
