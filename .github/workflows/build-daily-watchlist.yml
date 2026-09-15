@@ -9,6 +9,7 @@ on:
     paths:
       - '.github/workflows/build-daily-watchlist.yml'
       - 'build_daily_watchlist.py'
+      - 'validate_watchlist_lifecycle.py'
       - 'watchlist-trigger.txt'
 
 permissions:
@@ -30,6 +31,10 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Preserve previous watchlist for lifecycle regression check
+        run: |
+          if [ -s latest/watchlist.json ]; then cp latest/watchlist.json /tmp/previous_watchlist.json; fi
+
       - name: Fetch live Bybit positions
         env:
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
@@ -43,10 +48,8 @@ jobs:
           python - <<'PY'
           import json
           p=json.load(open('/tmp/bybit_positions.json'))
-          if not p.get('ok'):
-              raise SystemExit('live position snapshot failed')
-          if not isinstance(p.get('positions'), list):
-              raise SystemExit('positions list missing from Worker response')
+          if not p.get('ok'): raise SystemExit('live position snapshot failed')
+          if not isinstance(p.get('positions'), list): raise SystemExit('positions list missing from Worker response')
           print('live positions:', [(x.get('symbol'), x.get('side')) for x in p['positions']])
           PY
 
@@ -54,6 +57,9 @@ jobs:
         env:
           POSITION_SNAPSHOT: /tmp/bybit_positions.json
         run: python build_daily_watchlist.py
+
+      - name: Lifecycle regression gate
+        run: python validate_watchlist_lifecycle.py
 
       - name: Save watchlist
         run: |
@@ -74,7 +80,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # workflow_dispatch is intentionally used here because GitHub suppresses
-          # workflows triggered by normal pushes made with GITHUB_TOKEN.
           gh workflow run realtime-snapshot.yml --ref main
           echo "Realtime snapshot dispatched immediately after watchlist refresh"
