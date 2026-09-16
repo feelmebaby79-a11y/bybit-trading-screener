@@ -1,1 +1,1 @@
-2026-09-16T12:CURRENT+09:00 rebuild fresh #77 watchlist after STORJ V3.1 location-gate fix; reject SHORT in 1H discount and LONG in 1H premium; dispatch fresh ENTRY
+2026-09-16T12:55:00+09:00 rebuild fresh #77 watchlist with Daily + STORJ late-location hard gates; reject SHORT in 1H discount and LONG in 1H premium; dispatch fresh realtime ENTRY; no stale reuse
