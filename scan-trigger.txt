@@ -1,1 +1,1 @@
-2026-09-16T09:52:00+09:00 FORCE fresh full-universe morning scan for delayed 09:00 briefing; current-scan recommendations only; STORJ_TYPE_V3 100-point scoring
+2026-09-16T10:CURRENT+09:00 FORCE fresh full-universe realtime scan; rebuild three recommendation tracks: DAILY_RECOMMENDATION, STORJ_TYPE_V3 EARLY_MOMENTUM, HIGH_VOLATILITY_CRYPTO; crypto-only high-volatility candidates; current-scan-only; no stale reuse
