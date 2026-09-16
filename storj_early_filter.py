@@ -6,7 +6,7 @@ import requests
 BASE='https://bybit-trading-screener.feelmebaby79.workers.dev'
 SCAN=Path('latest/scan_results.csv'); WATCH=Path('latest/watchlist.json')
 MIN_SCORE=70; MAX_SELECTED=3; MODEL='STORJ_TYPE_V3'
-S=requests.Session(); S.headers.update({'User-Agent':'storj-early-filter/3.1'})
+S=requests.Session(); S.headers.update({'User-Agent':'storj-early-filter/3.2'})
 
 def num(v):
     try:return float(v)
@@ -17,8 +17,6 @@ def trend(d): return 'bullish' if d=='LONG' else 'bearish'
 
 def location_gate(r,d):
     loc=str(r.get('1H_location') or '').strip().lower()
-    # Do not call a move "early momentum" after it has already travelled into the
-    # opposite dealing-range extreme. SHORTs in discount and LONGs in premium are late.
     if d=='SHORT' and loc=='discount': return False,'rejected: SHORT already in 1H discount'
     if d=='LONG' and loc=='premium': return False,'rejected: LONG already in 1H premium'
     return True,''
@@ -79,11 +77,9 @@ def score_v3(r,d,meta):
     signed=[x if d=='LONG' else -x for x in rs if x is not None]; wins=sum(x>0 for x in signed)
     if wins<2:return False,pts,reasons
     pts+=10 if wins==3 else 7; reasons.append('BTC relative strength persistent')
-    ict=0
-    if truthy(r.get(f'{s}_sweep15')):ict+=4; reasons.append('15m sweep')
-    if truthy(r.get(f'{s}_mss15')):ict+=5; reasons.append('15m MSS')
-    if truthy(r.get(f'{s}_disp15')):ict+=5; reasons.append('15m displacement')
-    pts+=ict
+    if truthy(r.get(f'{s}_sweep15')):pts+=4; reasons.append('15m sweep')
+    if truthy(r.get(f'{s}_mss15')):pts+=5; reasons.append('15m MSS')
+    if truthy(r.get(f'{s}_disp15')):pts+=5; reasons.append('15m displacement')
     if str(r.get(f'{s}_fvg5') or '').lower()==t:pts+=5; reasons.append('5m FVG aligned')
     if truthy(r.get(f'{s}_entry_model_ready')):pts+=4; reasons.append('entry model ready')
     rr=num(r.get(f'{s}_rr'))
@@ -100,8 +96,7 @@ for r in rows:
     sym=r.get('symbol','').upper()
     for d in ('LONG','SHORT'):
         try:pb,meta=storj_pullback(sym,d)
-        except Exception as e:
-            print(sym,d,'1H validation error',e);continue
+        except Exception as e: print(sym,d,'1H validation error',e);continue
         if not pb:continue
         ok,score,reasons=score_v3(r,d,meta)
         grade='STRONG' if score>=80 else 'RECOMMEND' if score>=70 else 'WATCH' if score>=60 else 'REJECT'
@@ -117,8 +112,18 @@ for score,sym,d,reasons,meta,grade in selected:
     extra={'early_momentum':True,'early_momentum_model':MODEL,'early_momentum_score':score,'early_momentum_score_scale':100,'early_momentum_grade':grade,'early_momentum_reasons':reasons,'storj_pattern':meta}
     if existing:existing.update(extra)
     else:w['items'].append({'symbol':sym,'direction':d,'score':None,'score_scale':100,'poi_low':None,'poi_high':None,'status':'ACTIVE','bucket':'EARLY_MOMENTUM','trigger_model':'1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5','note':'STORJ_TYPE_V3 Early Momentum; 100-point score >=70 required; strict 5m trigger still required.','updated_at':w.get('updated_at'),**extra})
+
+# Preserve every recommendation-track membership even when one symbol qualifies for multiple tracks.
+for x in w.get('items',[]):
+    tracks=[]
+    if x.get('bucket')=='DAILY_RECOMMENDATION': tracks.append('DAILY_RECOMMENDATION')
+    if x.get('early_momentum') is True or x.get('bucket')=='EARLY_MOMENTUM': tracks.append('EARLY_MOMENTUM')
+    if x.get('high_volatility') is True or x.get('bucket')=='HIGH_VOLATILITY_CRYPTO': tracks.append('HIGH_VOLATILITY_CRYPTO')
+    if tracks:x['recommendation_tracks']=tracks
+
 p=w.setdefault('policy',{})
-p.update({'early_momentum_model':MODEL,'early_momentum_count':len([x for x in w['items'] if x.get('bucket')=='EARLY_MOMENTUM']),'early_momentum_max':MAX_SELECTED,'early_momentum_score_scale':100,'early_momentum_minimum_score':MIN_SCORE,'early_momentum_no_forced_pick':True,'location_gate':'SHORT in 1H discount and LONG in 1H premium are rejected as late entries','early_momentum_grades':{'STRONG':'80-100','RECOMMEND':'70-79','WATCH':'60-69 (not added)','REJECT':'0-59'},'early_momentum_rules':'STORJ V3.1: HTF alignment + verified completed 1H impulse/pullback/protected structure + 15m return + BTC RS + ICT confirmation + 5m FVG/entry readiness + RR + anti-chase + 1H dealing-range location gate; score >=70 only'})
-w['version']=20
+p.update({'early_momentum_model':MODEL,'early_momentum_count':sum(1 for x in w['items'] if x.get('early_momentum') is True or x.get('bucket')=='EARLY_MOMENTUM'),'early_momentum_max':MAX_SELECTED,'early_momentum_score_scale':100,'early_momentum_minimum_score':MIN_SCORE,'early_momentum_no_forced_pick':True,'high_volatility_crypto_count':sum(1 for x in w['items'] if x.get('high_volatility') is True or x.get('bucket')=='HIGH_VOLATILITY_CRYPTO'),'multi_track_membership_preserved':True,'location_gate':'SHORT in 1H discount and LONG in 1H premium are rejected as late entries','early_momentum_grades':{'STRONG':'80-100','RECOMMEND':'70-79','WATCH':'60-69 (not added)','REJECT':'0-59'},'early_momentum_rules':'STORJ V3.2: HTF alignment + verified completed 1H impulse/pullback/protected structure + 15m return + BTC RS + ICT confirmation + 5m FVG/entry readiness + RR + anti-chase + 1H dealing-range location gate; score >=70 only'})
+# Never downgrade the builder schema version.
+w['version']=max(int(w.get('version') or 0),22)
 WATCH.write_text(json.dumps(w,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-print(json.dumps({'ok':True,'model':MODEL,'version':20,'minimum_score':MIN_SCORE,'selected':[(s,d,sc,g) for sc,s,d,_,_,g in selected]},ensure_ascii=False))
+print(json.dumps({'ok':True,'model':MODEL,'version':w['version'],'minimum_score':MIN_SCORE,'high_volatility_crypto_count':p['high_volatility_crypto_count'],'selected':[(s,d,sc,g) for sc,s,d,_,_,g in selected]},ensure_ascii=False))
