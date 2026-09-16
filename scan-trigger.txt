@@ -1,1 +1,1 @@
-2026-09-16 FORCE fresh full-universe realtime scan AFTER Daily v21 + STORJ V3.1 late-location gates; current-scan-only; no stale reuse; rebuild recommendations; reject SHORT in 1H discount and LONG in 1H premium; then refresh realtime 5m ENTRY
+2026-09-16T16:36:00+09:00 FORCE fresh full-universe realtime scan with v22 THREE TRACKS: DAILY_RECOMMENDATION + STORJ_TYPE_V3 EARLY_MOMENTUM + crypto-only HIGH_VOLATILITY_CRYPTO; current-scan-only; no stale reuse; refresh current Bybit positions and realtime 5m ENTRY
