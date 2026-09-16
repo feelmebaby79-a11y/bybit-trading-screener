@@ -1,1 +1,1 @@
-2026-09-16 rebuild latest #78 watchlist with v22 THREE TRACKS: DAILY_RECOMMENDATION + STORJ_TYPE_V3 EARLY_MOMENTUM + crypto-only HIGH_VOLATILITY_CRYPTO; current-scan-only; dispatch fresh realtime ENTRY
+2026-09-16 rebuild fresh #79 watchlist after STORJ V3.2 fix; preserve v22; preserve DAILY + EARLY_MOMENTUM + HIGH_VOLATILITY_CRYPTO multi-track memberships and correct counts; dispatch fresh ENTRY
