@@ -1,1 +1,1 @@
-2026-09-16T12:55:00+09:00 rebuild fresh #77 watchlist with Daily + STORJ late-location hard gates; reject SHORT in 1H discount and LONG in 1H premium; dispatch fresh realtime ENTRY; no stale reuse
+2026-09-16 rebuild latest #78 watchlist with v22 THREE TRACKS: DAILY_RECOMMENDATION + STORJ_TYPE_V3 EARLY_MOMENTUM + crypto-only HIGH_VOLATILITY_CRYPTO; current-scan-only; dispatch fresh realtime ENTRY
