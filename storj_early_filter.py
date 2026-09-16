@@ -6,7 +6,7 @@ import requests
 BASE='https://bybit-trading-screener.feelmebaby79.workers.dev'
 SCAN=Path('latest/scan_results.csv'); WATCH=Path('latest/watchlist.json')
 MIN_SCORE=70; MAX_SELECTED=3; MODEL='STORJ_TYPE_V3'
-S=requests.Session(); S.headers.update({'User-Agent':'storj-early-filter/3.0'})
+S=requests.Session(); S.headers.update({'User-Agent':'storj-early-filter/3.1'})
 
 def num(v):
     try:return float(v)
@@ -14,6 +14,14 @@ def num(v):
 
 def truthy(v): return str(v).lower() in {'1','true','yes'}
 def trend(d): return 'bullish' if d=='LONG' else 'bearish'
+
+def location_gate(r,d):
+    loc=str(r.get('1H_location') or '').strip().lower()
+    # Do not call a move "early momentum" after it has already travelled into the
+    # opposite dealing-range extreme. SHORTs in discount and LONGs in premium are late.
+    if d=='SHORT' and loc=='discount': return False,'rejected: SHORT already in 1H discount'
+    if d=='LONG' and loc=='premium': return False,'rejected: LONG already in 1H premium'
+    return True,''
 
 def candles(sym, interval, limit=140):
     r=S.get(BASE+'/v5/market/kline',params={'category':'linear','symbol':sym,'interval':interval,'limit':limit},timeout=15)
@@ -56,7 +64,8 @@ def storj_pullback(sym,direction):
 
 def score_v3(r,d,meta):
     t=trend(d); s=d.lower(); reasons=[]; pts=0
-    # Hard gates: this model is intentionally allowed to return zero recommendations.
+    loc_ok,loc_reason=location_gate(r,d)
+    if not loc_ok:return False,0,[loc_reason]
     if r.get('1D')!=t or r.get('4H')!=t:return False,0,reasons
     pts+=20; reasons.append('1D/4H aligned')
     if r.get('15m')!=t:return False,pts,reasons
@@ -96,7 +105,7 @@ for r in rows:
         if not pb:continue
         ok,score,reasons=score_v3(r,d,meta)
         grade='STRONG' if score>=80 else 'RECOMMEND' if score>=70 else 'WATCH' if score>=60 else 'REJECT'
-        print(MODEL,sym,d,score,grade,meta)
+        print(MODEL,sym,d,score,grade,meta,reasons)
         if ok:candidates.append((score,sym,d,reasons,meta,grade))
         time.sleep(.03)
 candidates.sort(reverse=True);selected=candidates[:MAX_SELECTED]
@@ -109,7 +118,7 @@ for score,sym,d,reasons,meta,grade in selected:
     if existing:existing.update(extra)
     else:w['items'].append({'symbol':sym,'direction':d,'score':None,'score_scale':100,'poi_low':None,'poi_high':None,'status':'ACTIVE','bucket':'EARLY_MOMENTUM','trigger_model':'1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5','note':'STORJ_TYPE_V3 Early Momentum; 100-point score >=70 required; strict 5m trigger still required.','updated_at':w.get('updated_at'),**extra})
 p=w.setdefault('policy',{})
-p.update({'early_momentum_model':MODEL,'early_momentum_count':len([x for x in w['items'] if x.get('bucket')=='EARLY_MOMENTUM']),'early_momentum_max':MAX_SELECTED,'early_momentum_score_scale':100,'early_momentum_minimum_score':MIN_SCORE,'early_momentum_no_forced_pick':True,'early_momentum_grades':{'STRONG':'80-100','RECOMMEND':'70-79','WATCH':'60-69 (not added)','REJECT':'0-59'},'early_momentum_rules':'100-point STORJ V3: HTF alignment + verified completed 1H impulse/pullback/protected structure + 15m return + BTC RS + ICT confirmation + 5m FVG/entry readiness + RR + anti-chase; score >=70 only'})
-w['version']=19
+p.update({'early_momentum_model':MODEL,'early_momentum_count':len([x for x in w['items'] if x.get('bucket')=='EARLY_MOMENTUM']),'early_momentum_max':MAX_SELECTED,'early_momentum_score_scale':100,'early_momentum_minimum_score':MIN_SCORE,'early_momentum_no_forced_pick':True,'location_gate':'SHORT in 1H discount and LONG in 1H premium are rejected as late entries','early_momentum_grades':{'STRONG':'80-100','RECOMMEND':'70-79','WATCH':'60-69 (not added)','REJECT':'0-59'},'early_momentum_rules':'STORJ V3.1: HTF alignment + verified completed 1H impulse/pullback/protected structure + 15m return + BTC RS + ICT confirmation + 5m FVG/entry readiness + RR + anti-chase + 1H dealing-range location gate; score >=70 only'})
+w['version']=20
 WATCH.write_text(json.dumps(w,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-print(json.dumps({'ok':True,'model':MODEL,'minimum_score':MIN_SCORE,'selected':[(s,d,sc,g) for sc,s,d,_,_,g in selected]},ensure_ascii=False))
+print(json.dumps({'ok':True,'model':MODEL,'version':20,'minimum_score':MIN_SCORE,'selected':[(s,d,sc,g) for sc,s,d,_,_,g in selected]},ensure_ascii=False))
