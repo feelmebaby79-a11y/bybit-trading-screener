@@ -1,1 +1,1 @@
-2026-09-16T12:CURRENT+09:00 FORCE realtime snapshot from latest fresh #77 watchlist; require Worker watchlist convergence; reject stale watchlist; regenerate realtime_watch and entry_watch
+2026-09-16 FORCE realtime snapshot from latest v22 #79 watchlist updated_at=2026-09-16T07:48:54.634909+00:00; require exact Worker convergence; reject stale; regenerate realtime_watch + entry_watch; preserve three-track membership
