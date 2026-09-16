@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 20,
-  "updated_at": "2026-09-16T04:20:59.458311+00:00",
+  "updated_at": "2026-09-16T07:41:18.622260+00:00",
   "scan_fresh_only": true,
   "policy": {
     "mode": "CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_THREE_TRACKS",
@@ -17,12 +17,12 @@
     "position_fetch_ok": true,
     "position_symbols": [
       "ASTERUSDT",
-      "CAPUSDT",
       "ETHUSDT",
       "IOTAUSDT",
-      "MSTRUSDT"
+      "MSTRUSDT",
+      "TRXUSDT"
     ],
-    "daily_recommendation_count": 1,
+    "daily_recommendation_count": 3,
     "daily_recommendation_max": 3,
     "minimum_watch_score": 65,
     "daily_late_location_hard_gate": true,
@@ -30,7 +30,7 @@
     "early_momentum_max": 3,
     "early_momentum_model": "STORJ_TYPE_V3",
     "early_momentum_minimum_score": 70,
-    "high_volatility_crypto_count": 2,
+    "high_volatility_crypto_count": 0,
     "high_volatility_crypto_max": 5,
     "high_volatility_crypto_minimum_score": 65,
     "high_volatility_crypto_only": true,
@@ -57,8 +57,8 @@
   "items": [
     {
       "symbol": "BTCUSDT",
-      "direction": "SHORT",
-      "score": 50,
+      "direction": "LONG",
+      "score": 43,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -66,25 +66,25 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Core default symbol; monitored continuously.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "ETHUSDT",
-      "direction": "SHORT",
-      "score": 51,
+      "direction": "LONG",
+      "score": 46,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "bucket": "DEFAULT",
+      "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "note": "Core default symbol; monitored continuously.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "note": "Current Bybit open position; always included while open.",
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "XRPUSDT",
       "direction": "LONG",
-      "score": 48,
+      "score": 45,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -92,12 +92,12 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Core default symbol; monitored continuously.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "SOLUSDT",
       "direction": "SHORT",
-      "score": 54,
+      "score": 56,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -105,12 +105,12 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Core default symbol; monitored continuously.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "BNBUSDT",
       "direction": "SHORT",
-      "score": 51,
+      "score": 58,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -118,12 +118,12 @@
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Core default symbol; monitored continuously.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "ASTERUSDT",
       "direction": "LONG",
-      "score": 32,
+      "score": 30,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -131,33 +131,7 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Current Bybit open position; always included while open.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
-    },
-    {
-      "symbol": "CAPUSDT",
-      "direction": "SHORT",
-      "score": 23,
-      "score_scale": 100,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "CURRENT_POSITION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "note": "Current Bybit open position; always included while open.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
-    },
-    {
-      "symbol": "ETHUSDT",
-      "direction": "LONG",
-      "score": 32,
-      "score_scale": 100,
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "CURRENT_POSITION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "note": "Current Bybit open position; always included while open.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "IOTAUSDT",
@@ -170,12 +144,12 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Current Bybit open position; always included while open.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "MSTRUSDT",
       "direction": "LONG",
-      "score": 48,
+      "score": 53,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -183,12 +157,25 @@
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Current Bybit open position; always included while open.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
-      "symbol": "TUSDT",
+      "symbol": "TRXUSDT",
+      "direction": "SHORT",
+      "score": 59,
+      "score_scale": 100,
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "CURRENT_POSITION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
+      "note": "Current Bybit open position; always included while open.",
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
+    },
+    {
+      "symbol": "TSLAUSDT",
       "direction": "LONG",
-      "score": 65,
+      "score": 81,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
@@ -196,62 +183,48 @@
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "Daily recommendation selected from current scan; late-location hard gate applied.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00"
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
       "symbol": "LSKUSDT",
       "direction": "LONG",
-      "score": 69,
+      "score": 70,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "bucket": "HIGH_VOLATILITY_CRYPTO",
+      "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "note": "Crypto-only high-volatility recommendation from current scan; overextension/location gates applied; strict 5m trigger still required.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00",
+      "note": "Daily recommendation selected from current scan; late-location hard gate applied.",
+      "updated_at": "2026-09-16T07:41:18.622260+00:00",
       "high_volatility": true,
-      "high_volatility_score": 83,
+      "high_volatility_score": 72,
       "high_volatility_score_scale": 100,
-      "high_volatility_24h_abs_pct": 26.5773,
+      "high_volatility_24h_abs_pct": 11.3126,
       "high_volatility_reasons": [
-        "24h move 26.58% (30)",
+        "24h move 11.31% (20)",
         "turnover (15)",
         "TF alignment 4/4 (20)",
-        "BTC RS 3/3 (15)",
+        "BTC RS 2/3 (10)",
         "OI support 2/3 (7)",
-        "ICT confirmations 2/5 (4)",
-        "anti-chase (-8)"
+        "ICT confirmations 0/5 (0)"
       ]
     },
     {
-      "symbol": "POWERUSDT",
-      "direction": "SHORT",
-      "score": 39,
+      "symbol": "FLOCKUSDT",
+      "direction": "LONG",
+      "score": 70,
       "score_scale": 100,
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
-      "bucket": "HIGH_VOLATILITY_CRYPTO",
+      "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "note": "Crypto-only high-volatility recommendation from current scan; overextension/location gates applied; strict 5m trigger still required.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00",
-      "high_volatility": true,
-      "high_volatility_score": 70,
-      "high_volatility_score_scale": 100,
-      "high_volatility_24h_abs_pct": 22.9588,
-      "high_volatility_reasons": [
-        "24h move 22.96% (30)",
-        "turnover (12)",
-        "TF alignment 1/4 (5)",
-        "BTC RS 3/3 (15)",
-        "OI support 3/3 (10)",
-        "ICT confirmations 3/5 (6)",
-        "anti-chase (-8)"
-      ]
+      "note": "Daily recommendation selected from current scan; late-location hard gate applied.",
+      "updated_at": "2026-09-16T07:41:18.622260+00:00"
     },
     {
-      "symbol": "DELLUSDT",
+      "symbol": "ENAUSDT",
       "direction": "LONG",
       "score": null,
       "score_scale": 100,
@@ -261,17 +234,17 @@
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
       "note": "STORJ_TYPE_V3 Early Momentum; 100-point score >=70 required; strict 5m trigger still required.",
-      "updated_at": "2026-09-16T04:20:59.458311+00:00",
+      "updated_at": "2026-09-16T07:41:18.622260+00:00",
       "early_momentum": true,
       "early_momentum_model": "STORJ_TYPE_V3",
-      "early_momentum_score": 76,
+      "early_momentum_score": 81,
       "early_momentum_score_scale": 100,
-      "early_momentum_grade": "RECOMMEND",
+      "early_momentum_grade": "STRONG",
       "early_momentum_reasons": [
         "1D/4H aligned",
         "15m returned to HTF direction",
         "verified 1H impulse/pullback/protected structure",
-        "acceptable pullback depth",
+        "healthy pullback depth",
         "BTC relative strength persistent",
         "5m FVG aligned"
       ],
@@ -279,8 +252,8 @@
         "structural_impulse": true,
         "protected_structure": true,
         "actual_pullback": true,
-        "pullback_depth": 0.5035,
-        "pullback_bars": 13
+        "pullback_depth": 0.3183,
+        "pullback_bars": 2
       }
     }
   ]
