@@ -1,1 +1,1 @@
-2026-09-15T15:35:00+09:00 verify fresh Worker watchlist propagation after cache-bypass fix
+2026-09-16T12:CURRENT+09:00 FORCE realtime snapshot from latest fresh #77 watchlist; require Worker watchlist convergence; reject stale watchlist; regenerate realtime_watch and entry_watch
