@@ -1,1 +1,1 @@
-2026-09-15T15:31:00+09:00 rebuild dynamic watchlist from latest full-scan recommendations and dispatch ENTRY monitor
+2026-09-16T12:CURRENT+09:00 rebuild fresh #77 watchlist after STORJ V3.1 location-gate fix; reject SHORT in 1H discount and LONG in 1H premium; dispatch fresh ENTRY
