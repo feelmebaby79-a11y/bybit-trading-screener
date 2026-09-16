@@ -1,1 +1,1 @@
-2026-09-16T10:CURRENT+09:00 FORCE fresh full-universe realtime scan; rebuild three recommendation tracks: DAILY_RECOMMENDATION, STORJ_TYPE_V3 EARLY_MOMENTUM, HIGH_VOLATILITY_CRYPTO; crypto-only high-volatility candidates; current-scan-only; no stale reuse
+2026-09-16T12:31:00+09:00 FORCE fresh full-universe realtime scan; current-scan-only; no stale reuse; rebuild DAILY_RECOMMENDATION and STORJ_TYPE_V3 EARLY_MOMENTUM; extract crypto-only HIGH_VOLATILITY_CRYPTO from this fresh scan; then refresh realtime 5m ENTRY
