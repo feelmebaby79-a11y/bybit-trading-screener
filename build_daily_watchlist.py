@@ -5,10 +5,14 @@ from pathlib import Path
 DEFAULT_SYMBOLS=["BTCUSDT","ETHUSDT","XRPUSDT","SOLUSDT","BNBUSDT"]
 MAX_DAILY_RECOMMENDATIONS=3
 EARLY_MOMENTUM_COUNT=3
+HIGH_VOLATILITY_COUNT=5
 MIN_WATCH_SCORE=65
 MIN_EARLY_MOMENTUM_SCORE=70
+MIN_HIGH_VOLATILITY_SCORE=65
 INPUT=Path("latest/scan_results.csv"); SCAN_INPUT=Path("latest/scan.json"); OUTPUT=Path("latest/watchlist.json")
 LIVE_POSITIONS_INPUT=Path(os.environ.get("POSITION_SNAPSHOT","/tmp/bybit_positions.json"))
+# Bybit synthetic/tokenized TradFi symbols seen in this universe. Keep this explicit until instrument metadata is persisted in scan CSV.
+NON_CRYPTO_BASES={"XAU","XAG","XAUT","TSLA","DELL","MSTR","CRCL","SOXL","AAPL","AMZN","GOOG","GOOGL","META","MSFT","NVDA","NFLX","COIN","SPY","QQQ"}
 
 def num(v):
     try:return float(v)
@@ -20,6 +24,9 @@ def opp(direction):return "bearish" if direction=="LONG" else "bullish"
 def late_location(row,direction):
     loc=str((row or {}).get("1H_location") or "").strip().lower()
     return (direction=="LONG" and loc=="premium") or (direction=="SHORT" and loc=="discount")
+def crypto_native(sym):
+    base=str(sym or "").upper().removesuffix("USDT")
+    return bool(base) and base not in NON_CRYPTO_BASES
 
 def score_100(row,direction):
     if not row or direction not in {"LONG","SHORT"}:return None
@@ -43,6 +50,38 @@ def choose_side(row):
     if not row:return None,None
     scored=[(score_100(row,d),d) for d in ("LONG","SHORT")]; scored=[x for x in scored if x[0] is not None]
     return max(scored,key=lambda x:x[0]) if scored else (None,None)
+
+def high_volatility_score(row,direction):
+    """Crypto-only tradable-volatility score. Rewards movement/liquidity/RS/OI/structure, rejects extreme chase and late location."""
+    if not row or direction not in {"LONG","SHORT"}:return False,0,[]
+    if late_location(row,direction):return False,0,["late 1H location"]
+    pct=abs(num(row.get("price24h_pct")) or 0); turnover=num(row.get("turnover24h")) or 0
+    s=direction.lower(); t=trend(direction); chase=max(num(row.get(f"{s}_chase_penalty")) or 0,0)
+    if pct>=40 or chase>=4:return False,0,["overextended/chase rejected"]
+    pts=0; reasons=[]
+    # Volatility 30
+    v=30 if pct>=20 else 25 if pct>=12 else 20 if pct>=8 else 14 if pct>=5 else 8 if pct>=3 else 0
+    pts+=v; reasons.append(f"24h move {pct:.2f}% ({v})")
+    # Liquidity 15
+    l=15 if turnover>=100_000_000 else 12 if turnover>=50_000_000 else 9 if turnover>=20_000_000 else 5 if turnover>=5_000_000 else 0
+    pts+=l; reasons.append(f"turnover ({l})")
+    # Directional structure 20
+    aligned=sum(row.get(tf)==t for tf in ("1D","4H","1H","15m")); st=[0,5,10,15,20][aligned]; pts+=st; reasons.append(f"TF alignment {aligned}/4 ({st})")
+    # BTC RS 15
+    rs=[num(row.get("rs_vs_btc_30m_pct")),num(row.get("rs_vs_btc_1h_pct")),num(row.get("rs_vs_btc_4h_pct"))]
+    signed=[x if direction=="LONG" else -x for x in rs if x is not None]; wins=sum(x>0 for x in signed)
+    r=15 if wins==3 else 10 if wins==2 else 4 if wins==1 else 0; pts+=r; reasons.append(f"BTC RS {wins}/3 ({r})")
+    # OI participation 10
+    oi=[num(row.get("oi_change_15m_pct")),num(row.get("oi_change_1h_pct")),num(row.get("oi_change_4h_pct"))]
+    signed_oi=[x if direction=="LONG" else -x for x in oi if x is not None]; ow=sum(x>0 for x in signed_oi)
+    o=10 if ow==3 else 7 if ow==2 else 3 if ow==1 else 0; pts+=o; reasons.append(f"OI support {ow}/3 ({o})")
+    # ICT confirmation 10
+    ict=sum([truthy(row.get(f"{s}_sweep15")),truthy(row.get(f"{s}_mss15")),truthy(row.get(f"{s}_disp15")),str(row.get(f"{s}_fvg5") or "").lower()==t,truthy(row.get(f"{s}_entry_model_ready"))])
+    ip=min(10,ict*2); pts+=ip; reasons.append(f"ICT confirmations {ict}/5 ({ip})")
+    penalty=min(15,int(round(chase*4)))
+    if penalty:pts-=penalty;reasons.append(f"anti-chase (-{penalty})")
+    pts=int(max(0,min(100,pts)))
+    return pts>=MIN_HIGH_VOLATILITY_SCORE,pts,reasons
 
 def early_momentum_v3(row,direction):
     if not row or direction not in {"LONG","SHORT"}:return False,0,[]
@@ -98,8 +137,8 @@ def add(sym,d,bucket,extra=None):
                 if (x["symbol"],x["direction"])==key:x.update(extra)
         return
     seen.add(key);row=by_symbol.get(sym);score=score_100(row,d)
-    note="Current Bybit open position; always included while open." if bucket=="CURRENT_POSITION" else "STORJ_TYPE_V3 early momentum recommendation; 100-point score >=70; strict 5m trigger still required." if bucket=="EARLY_MOMENTUM" else "Daily recommendation selected from current scan; late-location hard gate applied." if bucket=="DAILY_RECOMMENDATION" else "Core default symbol; monitored continuously."
-    x={"symbol":sym,"direction":d,"score":score,"score_scale":100,"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","note":note,"updated_at":now}
+    notes={"CURRENT_POSITION":"Current Bybit open position; always included while open.","EARLY_MOMENTUM":"STORJ_TYPE_V3 Early Momentum; strict 5m trigger still required.","DAILY_RECOMMENDATION":"Daily recommendation selected from current scan; late-location hard gate applied.","HIGH_VOLATILITY_CRYPTO":"Crypto-only high-volatility recommendation from current scan; overextension/location gates applied; strict 5m trigger still required."}
+    x={"symbol":sym,"direction":d,"score":score,"score_scale":100,"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","note":notes.get(bucket,"Core default symbol; monitored continuously."),"updated_at":now}
     if extra:x.update(extra)
     items.append(x)
 
@@ -115,8 +154,7 @@ for sym,row in by_symbol.items():
     if sym in DEFAULT_SYMBOLS or sym in position_symbols:continue
     sc,d=choose_side(row)
     if sc is None:continue
-    if late_location(row,d):
-        late_rejected.append((sym,d,str(row.get("1H_location") or ""),sc)); continue
+    if late_location(row,d):late_rejected.append((sym,d,str(row.get("1H_location") or ""),sc));continue
     rr=num(row.get(f"{d.lower()}_rr")); htf=truthy(row.get(f"{d.lower()}_htf_aligned"))
     if sc>=MIN_WATCH_SCORE and htf and rr is not None and rr>=1.5:ranked.append((sc,sym,d))
 ranked.sort(reverse=True)
@@ -128,9 +166,17 @@ for sym,row in by_symbol.items():
         ok,em,reasons=early_momentum_v3(row,d)
         if ok:early.append((em,score_100(row,d) or 0,sym,d,reasons))
 early.sort(reverse=True)
-for em,sc,sym,d,reasons in early[:EARLY_MOMENTUM_COUNT]:
-    add(sym,d,"EARLY_MOMENTUM",{"early_momentum":True,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_score":em,"early_momentum_score_scale":100,"early_momentum_grade":"STRONG" if em>=80 else "RECOMMEND","early_momentum_reasons":reasons})
+for em,sc,sym,d,reasons in early[:EARLY_MOMENTUM_COUNT]:add(sym,d,"EARLY_MOMENTUM",{"early_momentum":True,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_score":em,"early_momentum_score_scale":100,"early_momentum_grade":"STRONG" if em>=80 else "RECOMMEND","early_momentum_reasons":reasons})
 
-payload={"ok":True,"version":21,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_RANKED","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"daily_late_location_hard_gate":True,"daily_late_location_rule":"reject LONG at 1H premium; reject SHORT at 1H discount","early_momentum_count":len([x for x in items if x.get("early_momentum") and x["bucket"]=="EARLY_MOMENTUM"]),"early_momentum_max":EARLY_MOMENTUM_COUNT,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_score_scale":100,"early_momentum_minimum_score":MIN_EARLY_MOMENTUM_SCORE,"early_momentum_no_forced_pick":True,"persistent_setup_count":0,"persistent_after_poi_touch":False,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"score_scale":100,"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"poi_timeframes":["1H","15m"],"entry_timeframe":"5m","entry_model":"1H/15m POI -> touch -> confirmed 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","minimum_rr":1.5},"items":items}
+highvol=[]
+for sym,row in by_symbol.items():
+    if not crypto_native(sym) or sym in position_symbols:continue
+    for d in ("LONG","SHORT"):
+        ok,hv,reasons=high_volatility_score(row,d)
+        if ok:highvol.append((hv,abs(num(row.get("price24h_pct")) or 0),sym,d,reasons))
+highvol.sort(reverse=True)
+for hv,pct,sym,d,reasons in highvol[:HIGH_VOLATILITY_COUNT]:add(sym,d,"HIGH_VOLATILITY_CRYPTO",{"high_volatility":True,"high_volatility_score":hv,"high_volatility_score_scale":100,"high_volatility_24h_abs_pct":round(pct,4),"high_volatility_reasons":reasons})
+
+payload={"ok":True,"version":22,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_THREE_TRACKS","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"daily_late_location_hard_gate":True,"early_momentum_count":len([x for x in items if x["bucket"]=="EARLY_MOMENTUM"]),"early_momentum_max":EARLY_MOMENTUM_COUNT,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_minimum_score":MIN_EARLY_MOMENTUM_SCORE,"high_volatility_crypto_count":len([x for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]),"high_volatility_crypto_max":HIGH_VOLATILITY_COUNT,"high_volatility_crypto_minimum_score":MIN_HIGH_VOLATILITY_SCORE,"high_volatility_crypto_only":True,"high_volatility_overextension_reject":"abs(24h)>=40% or chase>=4","high_volatility_components":"24h move 30 + turnover 15 + TF alignment 20 + BTC RS 15 + OI 10 + ICT 10 - chase penalty","persistent_setup_count":0,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},"items":items}
 OUTPUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-print(json.dumps({"ok":True,"version":21,"daily":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="DAILY_RECOMMENDATION"],"late_location_rejected":late_rejected,"early":[(x["symbol"],x["direction"],x.get("early_momentum_score")) for x in items if x["bucket"]=="EARLY_MOMENTUM"]},ensure_ascii=False))
+print(json.dumps({"ok":True,"version":22,"daily":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="DAILY_RECOMMENDATION"],"early":[(x["symbol"],x["direction"],x.get("early_momentum_score")) for x in items if x["bucket"]=="EARLY_MOMENTUM"],"high_volatility_crypto":[(x["symbol"],x["direction"],x.get("high_volatility_score"),x.get("high_volatility_24h_abs_pct")) for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]},ensure_ascii=False))
