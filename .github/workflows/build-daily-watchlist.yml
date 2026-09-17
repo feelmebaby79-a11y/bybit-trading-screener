@@ -12,6 +12,10 @@ on:
       - 'storj_early_filter.py'
       - 'validate_watchlist_lifecycle.py'
       - 'watchlist-trigger.txt'
+      - 'latest/scan.json'
+      - 'latest/scan_results.csv'
+      - 'latest/scan_results_long.csv'
+      - 'latest/scan_results_short.csv'
 
 permissions:
   contents: write
