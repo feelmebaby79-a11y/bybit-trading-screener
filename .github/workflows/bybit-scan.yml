@@ -104,7 +104,7 @@ jobs:
               try: market=fetch_position_market(symbol); market_ok=True; market_error=None
               except Exception as exc: market=None; market_ok=False; market_error=str(exc)
               positions[symbol]={"symbol":symbol,"in_recommendation_scan":symbol in analysis_by_symbol,"analysis":analysis_by_symbol.get(symbol),"market":market,"market_ok":market_ok,"market_error":market_error}
-          data={"ok":True,"generated_at":datetime.now(timezone.utc).isoformat(),"source":"Bybit V5 via Cloudflare","scan_method":"1D > 4H > 1H > 15m > 5m + BTC relative strength","universe_count":len(full),"position_fetch_ok":position_fetch_ok,"position_fetch_error":position_fetch_error,"position_count":len(position_symbols),"position_symbols":position_symbols,"positions":positions,"longs":longs,"shorts":shorts}
+          position_fetched_at=datetime.now(timezone.utc).isoformat()\n          data={"ok":True,"generated_at":datetime.now(timezone.utc).isoformat(),"position_fetched_at":position_fetched_at,"source":"Bybit V5 via Cloudflare","scan_method":"1D > 4H > 1H > 15m > 5m + BTC relative strength","universe_count":len(full),"position_fetch_ok":position_fetch_ok,"position_fetch_error":position_fetch_error,"position_count":len(position_symbols),"position_symbols":position_symbols,"positions":positions,"longs":longs,"shorts":shorts}
           with open("latest/scan.json","w",encoding="utf-8") as f: json.dump(data,f,ensure_ascii=False,indent=2)
           if os.path.getsize("latest/scan.json") < 100: raise SystemExit("latest/scan.json unexpectedly empty")
           print("Created latest/scan.json",os.path.getsize("latest/scan.json"),"bytes")
@@ -178,7 +178,7 @@ jobs:
           wl={"ok":True,"version":23,"updated_at":generated,"scan_fresh_only":True,
               "policy":{"mode":"CORE_PLUS_LIVE_POSITIONS_PLUS_CURRENT_SCAN","include_current_positions":True,
                 "position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,
-                "position_symbols":positions,"daily_recommendation_count":len(recs),
+                "position_symbols":positions,"position_fetched_at":scan.get("position_fetched_at"),"daily_recommendation_count":len(recs),
                 "reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,
                 "poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},
               "items":items}
