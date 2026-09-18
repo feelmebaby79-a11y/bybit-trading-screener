@@ -111,79 +111,77 @@ jobs:
           print("Universe:",len(full),"Positions:",position_symbols,"position_fetch_ok:",position_fetch_ok)
           PY
 
-      - name: Rebuild watchlist from fresh scan and live positions
+      - name: Rebuild watchlist with canonical 100-point score
         run: |
           python - <<'PY'
           import json
           from datetime import datetime, timezone
-
-          with open("latest/scan.json", encoding="utf-8") as f:
-              scan=json.load(f)
-          if not scan.get("ok") or not scan.get("position_fetch_ok"):
-              raise SystemExit("REFUSE STALE WATCHLIST: live Bybit position fetch failed")
-          generated=scan.get("generated_at")
-          if not generated:
-              raise SystemExit("REFUSE STALE WATCHLIST: scan generated_at missing")
-
+          with open("latest/scan.json",encoding="utf-8") as f: scan=json.load(f)
+          if not scan.get("ok") or not scan.get("position_fetch_ok"): raise SystemExit("REFUSE STALE WATCHLIST: private position fetch failed")
+          generated=scan.get("generated_at"); pf=scan.get("position_fetched_at") or generated
+          if not generated or not pf: raise SystemExit("REFUSE STALE WATCHLIST: freshness timestamp missing")
+          def b(v): return bool(v)
+          def n(v,d=0.0):
+              try:return float(v)
+              except:return d
+          def canonical(r,side):
+              p=side.lower(); opp="bearish" if side=="LONG" else "bullish"; trend="bullish" if side=="LONG" else "bearish"
+              # 25 HTF: 1D 13 + 4H 12
+              htf=(13 if r.get("1D")==trend else 0)+(12 if r.get("4H")==trend else 0)
+              # 15 1H structure/location: trend 8 + favorable dealing range 7, equilibrium 4
+              loc=str(r.get("1H_location") or "").lower(); fav=(loc=="discount" if side=="LONG" else loc=="premium")
+              oneh=(8 if r.get("1H")==trend else 0)+(7 if fav else (4 if loc=="equilibrium" else 0))
+              # 20 15m ICT: direction 5 + sweep 5 + MSS 5 + displacement 5
+              ict=(5 if r.get("15m")==trend else 0)+(5 if b(r.get(p+"_sweep15")) else 0)+(5 if b(r.get(p+"_mss15")) else 0)+(5 if b(r.get(p+"_disp15")) else 0)
+              # 15 5m FVG/OB + retracement/readiness
+              fvg=str(r.get(p+"_fvg5") or "").lower(); fvgok=(fvg==trend)
+              five=(5 if fvgok else 0)+(10 if b(r.get(p+"_entry_model_ready")) else 0)
+              # 10 entry location/chase
+              chase=max(0,n(r.get(p+"_chase_penalty"))); entryloc=(7 if fav else (4 if loc=="equilibrium" else 0))+max(0,3-min(3,chase))
+              # 10 RR
+              rr=n(r.get(p+"_rr"),0); rrpts=10 if rr>=2 else (8 if rr>=1.5 else (4 if rr>=1 else 0))
+              # 5 BTC environment/relative strength: positive in >=2 horizons
+              rs=[n(r.get("rs_vs_btc_30m_pct")),n(r.get("rs_vs_btc_1h_pct")),n(r.get("rs_vs_btc_4h_pct"))]
+              good=sum((x>0 if side=="LONG" else x<0) for x in rs); env=5 if good>=2 else (2 if good==1 else 0)
+              parts={"HTF":htf,"1H_STRUCTURE_LOCATION":oneh,"15M_ICT":ict,"5M_FVG_OB_RETRACE":five,"ENTRY_LOCATION_CHASE":entryloc,"RR":rrpts,"BTC_MARKET_ENV":env}
+              return round(sum(parts.values()),2),parts
           rows=[]
           for side,key in (("LONG","longs"),("SHORT","shorts")):
-              for r in scan.get(key,[]):
-                  x=dict(r); x["_side"]=side
-                  score=x.get(side.lower()+"_score")
-                  try: x["_score"]=float(score)
-                  except: x["_score"]=-999
-                  rows.append(x)
+              for src in scan.get(key,[]):
+                  r=dict(src); score,parts=canonical(r,side); r["_side"]=side;r["_score100"]=score;r["_parts"]=parts;rows.append(r)
           bysym={}
           for r in rows:
               s=str(r.get("symbol","")).upper()
-              if s and (s not in bysym or r["_score"]>bysym[s]["_score"]): bysym[s]=r
-
-          defaults=["BTCUSDT","ETHUSDT","XRPUSDT","SOLUSDT","BNBUSDT"]
-          positions=scan.get("position_symbols") or []
-          items=[]
-          seen=set()
-          def add(symbol,bucket,row=None):
-              symbol=symbol.upper()
-              row=row or bysym.get(symbol,{})
-              side=row.get("_side")
-              if not side:
-                  ls=float(row.get("long_score") or -999); ss=float(row.get("short_score") or -999)
-                  side="LONG" if ls>=ss else "SHORT"
-              score=row.get("_score")
-              if score is None or score==-999:
-                  try: score=max(float(row.get("long_score") or -999),float(row.get("short_score") or -999))
-                  except: score=None
-              key=(symbol,bucket)
+              if s and (s not in bysym or r["_score100"]>bysym[s]["_score100"]): bysym[s]=r
+          defaults=["BTCUSDT","ETHUSDT","XRPUSDT","SOLUSDT","BNBUSDT"]; positions=scan.get("position_symbols") or []; items=[]; seen=set()
+          def add(sym,bucket,r=None):
+              sym=sym.upper(); r=r or bysym.get(sym,{}); side=r.get("_side","LONG"); key=(sym,bucket)
               if key in seen:return
-              seen.add(key)
-              items.append({"symbol":symbol,"direction":side,"score":None if score in (-999,None) else round(score,2),
-                "score_scale":100,"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,
-                "trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-                "note":"Fresh live Bybit position." if bucket=="CURRENT_POSITION" else "Fresh current-scan candidate.",
-                "updated_at":generated})
+              seen.add(key); items.append({"symbol":sym,"direction":side,"score":r.get("_score100"),"score_scale":100,"score_breakdown":r.get("_parts"),"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","updated_at":generated})
           for s in defaults:add(s,"DEFAULT")
           for s in positions:add(s,"CURRENT_POSITION")
-
-          candidates=[r for r in rows if r.get("symbol") not in positions]
-          candidates.sort(key=lambda r:r["_score"],reverse=True)
-          recs=[]
-          for r in candidates:
-              side=r["_side"]; loc=str(r.get("1H_location",""))
+          eligible=[]
+          for r in rows:
+              if str(r.get("symbol","")).upper() in positions: continue
+              side=r["_side"]; loc=str(r.get("1H_location") or "").lower(); rr=n(r.get(side.lower()+"_rr"),0)
               if (side=="LONG" and loc=="premium") or (side=="SHORT" and loc=="discount"): continue
-              if r["_score"]<65: continue
-              recs.append(r)
-              if len(recs)==3: break
+              if rr<1.5: continue
+              eligible.append(r)
+          eligible.sort(key=lambda x:x["_score100"],reverse=True); recs=eligible[:3]
           for r in recs:add(str(r["symbol"]),"DAILY_RECOMMENDATION",r)
-
-          wl={"ok":True,"version":23,"updated_at":generated,"scan_fresh_only":True,
-              "policy":{"mode":"CORE_PLUS_LIVE_POSITIONS_PLUS_CURRENT_SCAN","include_current_positions":True,
-                "position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,
-                "position_symbols":positions,"position_fetched_at":scan.get("position_fetched_at"),"daily_recommendation_count":len(recs),
-                "reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,
-                "poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},
-              "items":items}
-          with open("latest/watchlist.json","w",encoding="utf-8") as f: json.dump(wl,f,ensure_ascii=False,indent=2)
-          print("WATCHLIST rebuilt",generated,"positions",positions,"items",len(items))
+          # Early Momentum: separate, no forced picks, max 3; HTF aligned + 1H correction + 15m return + RS >=2 horizons.
+          early=[]
+          for r in rows:
+              side=r["_side"]; p=side.lower(); trend="bullish" if side=="LONG" else "bearish"; corr="bearish" if side=="LONG" else "bullish"
+              if r.get("1D")!=trend or r.get("4H")!=trend or r.get("1H")!=corr or r.get("15m")!=trend: continue
+              rs=[n(r.get("rs_vs_btc_30m_pct")),n(r.get("rs_vs_btc_1h_pct")),n(r.get("rs_vs_btc_4h_pct"))]; good=sum((x>0 if side=="LONG" else x<0) for x in rs)
+              if good<2: continue
+              early.append(r)
+          early.sort(key=lambda x:x["_score100"],reverse=True); early=early[:3]
+          for r in early:add(str(r["symbol"]),"EARLY_MOMENTUM",r)
+          wl={"ok":True,"version":25,"updated_at":generated,"scan_fresh_only":True,"policy":{"mode":"CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM","position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,"position_symbols":positions,"position_fetched_at":pf,"score_scale":100,"score_formula":"HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5","daily_recommendation_count":len(recs),"early_momentum_count":len(early),"early_momentum_max":3,"early_momentum_no_forced_pick":True,"no_retrace_no_trade":True,"minimum_rr":1.5},"items":items}
+          with open("latest/watchlist.json","w",encoding="utf-8") as f:json.dump(wl,f,ensure_ascii=False,indent=2)
+          print("WATCHLIST100",generated,"positions",positions,"daily",[(x["symbol"],x["_side"],x["_score100"]) for x in recs],"early",[(x["symbol"],x["_side"],x["_score100"]) for x in early])
           PY
 
       - name: Create Pages site
