@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-09-18T23:31:14.794514+00:00",
+  "good_hosts": [
+    "https://api.manepa.jp"
+  ],
+  "results": [
+    {
+      "host": "https://api.bybit.com",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bytick.com",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bybit.nl",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bybit.tr",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bybit.kz",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bybitgeorgia.ge",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bybit.ae",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.bybit.id",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "host": "https://api.manepa.jp",
+      "status": 200,
+      "ok": true,
+      "retCode": 0,
+      "retMsg": "OK"
+    },
+    {
+      "host": "https://api.spark-fintech.com",
+      "ok": false,
+      "error": "HTTP Error 403: Forbidden"
+    }
+  ]
+}
