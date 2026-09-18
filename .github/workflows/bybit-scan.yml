@@ -3,8 +3,8 @@ name: Bybit HTF LTF Scan
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'scan-trigger.txt'
+    branches:
+      - main
   schedule:
     # 매일 한국시간 오전 8시 51분 — 09:00 브리핑 전에 fresh scan 확보
     - cron: "51 23 * * *"
