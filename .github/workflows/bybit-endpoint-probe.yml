@@ -1,0 +1,56 @@
+name: Bybit Endpoint Probe
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/bybit-endpoint-probe.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Probe official Bybit endpoints
+        run: |
+          python - <<'PY'
+          import json, urllib.request, urllib.parse, urllib.error, datetime
+          hosts=[
+            'https://api.bybit.com','https://api.bytick.com','https://api.bybit.nl',
+            'https://api.bybit.tr','https://api.bybit.kz','https://api.bybitgeorgia.ge',
+            'https://api.bybit.ae','https://api.bybit.id','https://api.manepa.jp',
+            'https://api.spark-fintech.com'
+          ]
+          out=[]
+          for h in hosts:
+            url=h+'/v5/market/instruments-info?category=linear&limit=1'
+            try:
+              req=urllib.request.Request(url,headers={'User-Agent':'bybit-endpoint-probe/1.0','Accept':'application/json'})
+              with urllib.request.urlopen(req,timeout=12) as r:
+                body=r.read().decode('utf-8','replace')
+                try: j=json.loads(body); ok=(j.get('retCode')==0)
+                except: j={}; ok=False
+                out.append({'host':h,'status':r.status,'ok':ok,'retCode':j.get('retCode'),'retMsg':j.get('retMsg')})
+            except Exception as e:
+              out.append({'host':h,'ok':False,'error':str(e)[:300]})
+          good=[x['host'] for x in out if x.get('ok')]
+          data={'generated_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'good_hosts':good,'results':out}
+          import os
+          os.makedirs('latest',exist_ok=True)
+          open('latest/endpoint_probe.json','w').write(json.dumps(data,indent=2))
+          print(json.dumps(data,indent=2))
+          PY
+      - name: Save probe
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add latest/endpoint_probe.json
+          git commit -m 'Update Bybit endpoint probe [skip actions]' || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
