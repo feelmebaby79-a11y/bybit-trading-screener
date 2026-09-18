@@ -1,1 +1,1 @@
-2026-09-17T13:19:00+09:00 FORCE fresh full-universe realtime scan; current-scan-only; refresh all current Bybit positions including IOTA; rebuild recommendations, Early Momentum and 5m ENTRY monitoring
+2026-09-18T09:00:00+09:00 FORCE fresh same-day scan for 09:00 briefing; current-scan-only; refresh all current Bybit positions; rebuild recommendations, Early Momentum and 5m ENTRY monitoring; reject stale 2026-09-17 data
