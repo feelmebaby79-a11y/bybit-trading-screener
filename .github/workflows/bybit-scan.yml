@@ -113,6 +113,81 @@ jobs:
           print("Universe:",len(full),"Positions:",position_symbols,"position_fetch_ok:",position_fetch_ok)
           PY
 
+      - name: Rebuild watchlist from fresh scan and live positions
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+
+          with open("latest/scan.json", encoding="utf-8") as f:
+              scan=json.load(f)
+          if not scan.get("ok") or not scan.get("position_fetch_ok"):
+              raise SystemExit("REFUSE STALE WATCHLIST: live Bybit position fetch failed")
+          generated=scan.get("generated_at")
+          if not generated:
+              raise SystemExit("REFUSE STALE WATCHLIST: scan generated_at missing")
+
+          rows=[]
+          for side,key in (("LONG","longs"),("SHORT","shorts")):
+              for r in scan.get(key,[]):
+                  x=dict(r); x["_side"]=side
+                  score=x.get(side.lower()+"_score")
+                  try: x["_score"]=float(score)
+                  except: x["_score"]=-999
+                  rows.append(x)
+          bysym={}
+          for r in rows:
+              s=str(r.get("symbol","")).upper()
+              if s and (s not in bysym or r["_score"]>bysym[s]["_score"]): bysym[s]=r
+
+          defaults=["BTCUSDT","ETHUSDT","XRPUSDT","SOLUSDT","BNBUSDT"]
+          positions=scan.get("position_symbols") or []
+          items=[]
+          seen=set()
+          def add(symbol,bucket,row=None):
+              symbol=symbol.upper()
+              row=row or bysym.get(symbol,{})
+              side=row.get("_side")
+              if not side:
+                  ls=float(row.get("long_score") or -999); ss=float(row.get("short_score") or -999)
+                  side="LONG" if ls>=ss else "SHORT"
+              score=row.get("_score")
+              if score is None or score==-999:
+                  try: score=max(float(row.get("long_score") or -999),float(row.get("short_score") or -999))
+                  except: score=None
+              key=(symbol,bucket)
+              if key in seen:return
+              seen.add(key)
+              items.append({"symbol":symbol,"direction":side,"score":None if score in (-999,None) else round(score,2),
+                "score_scale":100,"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,
+                "trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
+                "note":"Fresh live Bybit position." if bucket=="CURRENT_POSITION" else "Fresh current-scan candidate.",
+                "updated_at":generated})
+          for s in defaults:add(s,"DEFAULT")
+          for s in positions:add(s,"CURRENT_POSITION")
+
+          candidates=[r for r in rows if r.get("symbol") not in positions]
+          candidates.sort(key=lambda r:r["_score"],reverse=True)
+          recs=[]
+          for r in candidates:
+              side=r["_side"]; loc=str(r.get("1H_location",""))
+              if (side=="LONG" and loc=="premium") or (side=="SHORT" and loc=="discount"): continue
+              if r["_score"]<65: continue
+              recs.append(r)
+              if len(recs)==3: break
+          for r in recs:add(str(r["symbol"]),"DAILY_RECOMMENDATION",r)
+
+          wl={"ok":True,"version":23,"updated_at":generated,"scan_fresh_only":True,
+              "policy":{"mode":"CORE_PLUS_LIVE_POSITIONS_PLUS_CURRENT_SCAN","include_current_positions":True,
+                "position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,
+                "position_symbols":positions,"daily_recommendation_count":len(recs),
+                "reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,
+                "poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},
+              "items":items}
+          with open("latest/watchlist.json","w",encoding="utf-8") as f: json.dump(wl,f,ensure_ascii=False,indent=2)
+          print("WATCHLIST rebuilt",generated,"positions",positions,"items",len(items))
+          PY
+
       - name: Create Pages site
         run: |
           mkdir -p public/latest
