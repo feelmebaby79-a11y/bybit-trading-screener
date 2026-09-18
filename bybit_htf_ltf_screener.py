@@ -267,7 +267,7 @@ def universe(cfg):
 
     )
 
-    return out.head(cfg.top_turnover)
+    return out.head(cfg.max_symbols)
 
 
 # =========================================================
@@ -1837,7 +1837,7 @@ def main():
 
     print(
 
-        f"Universe: {len(U)} (24h turnover TOP {cfg.top_turnover})"
+        f"Universe: {len(U)} (active USDT perpetuals, max {cfg.max_symbols})"
 
     )
 
