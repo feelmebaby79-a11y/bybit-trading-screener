@@ -1,1 +1,1 @@
-2026-09-18T09:10:00+09:00 FORCE RUN after main-branch push trigger repair; fresh same-day full scan; current positions + recommendations + Early Momentum + 5m ENTRY; stale prohibited
+2026-09-18T00:25:00Z force fresh full scan after live-position watchlist repair
