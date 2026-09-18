@@ -1,1 +1,1 @@
-2026-09-18T09:05:00+09:00 RETRY after workflow schedule repair; FORCE fresh same-day full scan; current positions + recommendations + Early Momentum + 5m ENTRY; reject stale data
+2026-09-18T09:10:00+09:00 FORCE RUN after main-branch push trigger repair; fresh same-day full scan; current positions + recommendations + Early Momentum + 5m ENTRY; stale prohibited
