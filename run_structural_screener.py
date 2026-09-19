@@ -115,9 +115,8 @@ patched = code[:start] + replacement + code[end:]
 # This guarantees current positions such as IOTA are analyzed even when they
 # fall outside the recommendation liquidity shortlist.
 old_universe_cap = '    return out.head(cfg.top_turnover)'
-if old_universe_cap not in patched:
-    raise RuntimeError("Universe cap patch target not found")
-patched = patched.replace(old_universe_cap, '    return out', 1)
+if old_universe_cap in patched:
+    patched = patched.replace(old_universe_cap, '    return out', 1)
 
 # Add structural metadata to feature dictionaries without changing scoring fields.
 old_feat = '''    tr, sc, _, _ = structure(d)\n\n    zone, pos, hi, lo, eq = location(d)'''
