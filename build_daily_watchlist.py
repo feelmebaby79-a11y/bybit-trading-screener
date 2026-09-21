@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_SYMBOLS=["BTCUSDT","ETHUSDT","XRPUSDT","SOLUSDT","BNBUSDT"]
-MAX_DAILY_RECOMMENDATIONS=3
+MAX_DAILY_RECOMMENDATIONS=6
+MAX_DAILY_PER_SIDE=3
 EARLY_MOMENTUM_COUNT=3
 HIGH_VOLATILITY_COUNT=5
 MIN_WATCH_SCORE=65
@@ -183,16 +184,23 @@ for sym in position_symbols:
     if existing:existing["bucket"]="CURRENT_POSITION";existing["note"]="Current Bybit open position; always included while open."
     else:add(sym,d,"CURRENT_POSITION")
 
-ranked=[]; late_rejected=[]
+ranked_by_side={"LONG":[],"SHORT":[]}; late_rejected=[]
 for sym,row in by_symbol.items():
     if sym in DEFAULT_SYMBOLS or sym in position_symbols:continue
-    sc,d=choose_side(row)
-    if sc is None:continue
-    if late_location(row,d):late_rejected.append((sym,d,str(row.get("1H_location") or ""),sc));continue
-    rr=num(row.get(f"{d.lower()}_rr")); htf=truthy(row.get(f"{d.lower()}_htf_aligned"))
-    if sc>=MIN_WATCH_SCORE and htf and rr is not None and rr>=1.5:ranked.append((sc,sym,d))
-ranked.sort(reverse=True)
-for sc,sym,d in ranked[:MAX_DAILY_RECOMMENDATIONS]:add(sym,d,"DAILY_RECOMMENDATION")
+    # LONG and SHORT are independent recommendation universes.
+    for d in ("LONG","SHORT"):
+        sc=score_100(row,d)
+        if sc is None:continue
+        if late_location(row,d):
+            late_rejected.append((sym,d,str(row.get("1H_location") or ""),sc))
+            continue
+        rr=num(row.get(f"{d.lower()}_rr")); htf=truthy(row.get(f"{d.lower()}_htf_aligned"))
+        if sc>=MIN_WATCH_SCORE and htf and rr is not None and rr>=1.5:
+            ranked_by_side[d].append((sc,sym,d))
+for d in ("LONG","SHORT"):
+    ranked_by_side[d].sort(reverse=True)
+    for sc,sym,side in ranked_by_side[d][:MAX_DAILY_PER_SIDE]:
+        add(sym,side,"DAILY_RECOMMENDATION",{"recommendation_side":side,"recommendation_model":"TREND_100_SIDE_INDEPENDENT"})
 
 early=[]
 for sym,row in by_symbol.items():
@@ -221,6 +229,6 @@ for sym,row in by_symbol.items():
 highvol.sort(reverse=True)
 for hv,pct,sym,d,reasons in highvol[:HIGH_VOLATILITY_COUNT]:add(sym,d,"HIGH_VOLATILITY_CRYPTO",{"high_volatility":True,"high_volatility_score":hv,"high_volatility_score_scale":100,"high_volatility_24h_abs_pct":round(pct,4),"high_volatility_reasons":reasons})
 
-payload={"ok":True,"version":22,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_THREE_TRACKS","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"daily_late_location_hard_gate":True,"early_momentum_count":len([x for x in items if x["bucket"]=="EARLY_MOMENTUM"]),"early_momentum_max":EARLY_MOMENTUM_COUNT,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_minimum_score":MIN_EARLY_MOMENTUM_SCORE,"reversal_early_count":len([x for x in items if x["bucket"]=="REVERSAL_EARLY"]),"reversal_early_max":REVERSAL_EARLY_COUNT,"reversal_early_minimum_score":MIN_REVERSAL_EARLY_SCORE,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","reversal_early_rules":"favorable 1H discount/premium + counter-trend HTF context + mandatory 15m liquidity sweep + MSS/CHoCH or displacement; 5m FVG/entry readiness/RR add score; no forced pick","high_volatility_crypto_count":len([x for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]),"high_volatility_crypto_max":HIGH_VOLATILITY_COUNT,"high_volatility_crypto_minimum_score":MIN_HIGH_VOLATILITY_SCORE,"high_volatility_crypto_only":True,"high_volatility_overextension_reject":"abs(24h)>=40% or chase>=4","high_volatility_components":"24h move 30 + turnover 15 + TF alignment 20 + BTC RS 15 + OI 10 + ICT 10 - chase penalty","persistent_setup_count":0,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},"items":items}
+payload={"ok":True,"version":22,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_THREE_TRACKS","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"daily_recommendation_max_per_side":MAX_DAILY_PER_SIDE,"daily_recommendation_side_independent":True,"daily_recommendation_no_forced_pick":True,"minimum_watch_score":MIN_WATCH_SCORE,"daily_late_location_hard_gate":True,"early_momentum_count":len([x for x in items if x["bucket"]=="EARLY_MOMENTUM"]),"early_momentum_max":EARLY_MOMENTUM_COUNT,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_minimum_score":MIN_EARLY_MOMENTUM_SCORE,"reversal_early_count":len([x for x in items if x["bucket"]=="REVERSAL_EARLY"]),"reversal_early_max":REVERSAL_EARLY_COUNT,"reversal_early_minimum_score":MIN_REVERSAL_EARLY_SCORE,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","reversal_early_rules":"favorable 1H discount/premium + counter-trend HTF context + mandatory 15m liquidity sweep + MSS/CHoCH or displacement; 5m FVG/entry readiness/RR add score; no forced pick","high_volatility_crypto_count":len([x for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]),"high_volatility_crypto_max":HIGH_VOLATILITY_COUNT,"high_volatility_crypto_minimum_score":MIN_HIGH_VOLATILITY_SCORE,"high_volatility_crypto_only":True,"high_volatility_overextension_reject":"abs(24h)>=40% or chase>=4","high_volatility_components":"24h move 30 + turnover 15 + TF alignment 20 + BTC RS 15 + OI 10 + ICT 10 - chase penalty","persistent_setup_count":0,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},"items":items}
 OUTPUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 print(json.dumps({"ok":True,"version":22,"daily":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="DAILY_RECOMMENDATION"],"early":[(x["symbol"],x["direction"],x.get("early_momentum_score")) for x in items if x["bucket"]=="EARLY_MOMENTUM"],"high_volatility_crypto":[(x["symbol"],x["direction"],x.get("high_volatility_score"),x.get("high_volatility_24h_abs_pct")) for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]},ensure_ascii=False))
