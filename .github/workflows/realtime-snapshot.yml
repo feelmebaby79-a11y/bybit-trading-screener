@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: realtime-poi-snapshot
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   snapshot:
@@ -37,6 +37,9 @@ jobs:
               req=urllib.request.Request(url,headers={'Accept':'application/json','User-Agent':'realtime-shard-snapshot'})
               with urllib.request.urlopen(req,timeout=60) as r: return json.loads(r.read().decode('utf-8'))
           def fetch_watchlist(): return fetch_json(f'{BASE}/watchlist')
+          def parse_ts(v):
+              if not v: raise RuntimeError('missing timestamp')
+              return datetime.fromisoformat(str(v).replace('Z','+00:00')).astimezone(timezone.utc)
           def merge(kind):
               parts=[]
               for shard in range(SHARDS):
@@ -57,8 +60,22 @@ jobs:
                   age=max((datetime.now(timezone.utc)-datetime.fromisoformat(x['generated_at'].replace('Z','+00:00')).astimezone(timezone.utc)).total_seconds() for x in (realtime,entry))
                   if age>600: raise RuntimeError(f'stale snapshot age={age:.0f}s')
                   current=fetch_watchlist()
+                  if current.get('ok') is not True: raise RuntimeError('worker watchlist not ok')
                   current_updated=current.get('updated_at')
-                  if current_updated and current_updated!=expected: raise RuntimeError(f'watchlist changed during snapshot: worker={expected} current={current_updated}')
+                  if not current_updated: raise RuntimeError('worker watchlist missing updated_at')
+                  if current_updated!=expected: raise RuntimeError(f'watchlist changed during snapshot: worker={expected} current={current_updated}')
+                  # Hard freshness gate: realtime/ENTRY may only use today's fresh watchlist.
+                  now=datetime.now(timezone.utc)
+                  wl_age=(now-parse_ts(current_updated)).total_seconds()
+                  if wl_age<0 or wl_age>86400: raise RuntimeError(f'stale watchlist age={wl_age:.0f}s')
+                  policy=current.get('policy') or {}
+                  if policy.get('position_fetch_ok') is not True: raise RuntimeError('watchlist position_fetch_ok != true')
+                  pf=policy.get('position_fetched_at')
+                  pf_age=(now-parse_ts(pf)).total_seconds()
+                  if pf_age<0 or pf_age>86400: raise RuntimeError(f'stale position_fetched_at age={pf_age:.0f}s')
+                  if current.get('scan_fresh_only') is not True: raise RuntimeError('watchlist scan_fresh_only != true')
+                  if int(policy.get('score_scale') or 0)!=100: raise RuntimeError('watchlist canonical score scale is not 100')
+                  if policy.get('no_retrace_no_trade') is not True or float(policy.get('minimum_rr') or 0)<1.5: raise RuntimeError('entry policy gate invalid')
                   break
               except Exception as exc:
                   last_error=exc
