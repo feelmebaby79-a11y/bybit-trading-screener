@@ -1,92 +1,38 @@
 name: Build Daily Watchlist
 
+# Canonical watchlist is produced atomically by Bybit HTF LTF Scan.
+# This legacy workflow is intentionally manual-only to prevent the old
+# version-22 builder from overwriting the canonical version-25 watchlist.
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Bybit HTF LTF Scan"]
-    types: [completed]
-  push:
-    paths:
-      - '.github/workflows/build-daily-watchlist.yml'
-      - 'build_daily_watchlist.py'
-      - 'storj_early_filter.py'
-      - 'validate_watchlist_lifecycle.py'
-      - 'watchlist-trigger.txt'
-      - 'latest/scan.json'
-      - 'latest/scan_results.csv'
-      - 'latest/scan_results_long.csv'
-      - 'latest/scan_results_short.csv'
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 concurrency:
-  group: build-daily-watchlist-main
-  cancel-in-progress: false
+  group: build-daily-watchlist-legacy-manual
+  cancel-in-progress: true
 
 jobs:
-  build:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
-
-      - name: Preserve previous watchlist for lifecycle regression check
+      - name: Verify canonical watchlist only
         run: |
-          if [ -s latest/watchlist.json ]; then cp latest/watchlist.json /tmp/previous_watchlist.json; fi
-
-      - name: Fetch live Bybit positions
-        env:
-          WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
-        run: |
-          test -n "$WORKER_ACCESS_KEY" || (echo 'Missing WORKER_ACCESS_KEY' && exit 21)
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $WORKER_ACCESS_KEY" \
-            -H "Accept: application/json" \
-            https://bybit-trading-screener.feelmebaby79.workers.dev/position-symbols \
-            -o /tmp/bybit_positions.json
           python - <<'PY'
           import json
-          p=json.load(open('/tmp/bybit_positions.json'))
-          if not p.get('ok'): raise SystemExit('live position snapshot failed')
-          if not isinstance(p.get('positions'), list): raise SystemExit('positions list missing from Worker response')
-          print('live positions:', [(x.get('symbol'), x.get('side')) for x in p['positions']])
+          w=json.load(open('latest/watchlist.json'))
+          p=w.get('policy') or {}
+          assert w.get('ok') is True, 'watchlist not ok'
+          assert w.get('version') == 25, 'watchlist must be canonical v25'
+          assert w.get('scan_fresh_only') is True, 'scan_fresh_only must be true'
+          assert p.get('position_fetch_ok') is True, 'position_fetch_ok must be true'
+          assert p.get('score_scale') == 100, 'canonical score scale must be 100'
+          assert p.get('no_retrace_no_trade') is True, 'no-retrace policy missing'
+          assert float(p.get('minimum_rr') or 0) >= 1.5, 'minimum RR invalid'
+          print('Canonical watchlist verification OK:', w.get('updated_at'))
           PY
-
-      - name: Build watchlist
-        env:
-          POSITION_SNAPSHOT: /tmp/bybit_positions.json
-        run: python build_daily_watchlist.py
-
-      - name: Apply strict STORJ-type Early Momentum filter
-        run: python storj_early_filter.py
-
-      - name: Lifecycle regression gate
-        run: python validate_watchlist_lifecycle.py
-
-      - name: Save watchlist
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add latest/watchlist.json
-          if git diff --cached --quiet; then
-            echo "No watchlist changes"
-          else
-            git commit -m "Refresh core plus daily watchlist"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-
-      - name: Dispatch realtime monitoring immediately
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh workflow run realtime-snapshot.yml --ref main
-          echo "Realtime snapshot dispatched immediately after watchlist refresh"
