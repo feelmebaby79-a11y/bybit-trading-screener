@@ -9,6 +9,8 @@ HIGH_VOLATILITY_COUNT=5
 MIN_WATCH_SCORE=65
 MIN_EARLY_MOMENTUM_SCORE=70
 MIN_HIGH_VOLATILITY_SCORE=65
+REVERSAL_EARLY_COUNT=3
+MIN_REVERSAL_EARLY_SCORE=65
 INPUT=Path("latest/scan_results.csv"); SCAN_INPUT=Path("latest/scan.json"); OUTPUT=Path("latest/watchlist.json")
 LIVE_POSITIONS_INPUT=Path(os.environ.get("POSITION_SNAPSHOT","/tmp/bybit_positions.json"))
 # Bybit synthetic/tokenized TradFi symbols seen in this universe. Keep this explicit until instrument metadata is persisted in scan CSV.
@@ -109,6 +111,38 @@ def early_momentum_v3(row,direction):
     if penalty:pts-=penalty;reasons.append(f"anti-chase penalty (-{penalty})")
     pts=int(max(0,min(100,pts))); return pts>=MIN_EARLY_MOMENTUM_SCORE,pts,reasons
 
+def reversal_early(row,direction):
+    """Catch counter-trend reversals early: favorable HTF dealing-range location + 15m liquidity event + LTF reversal evidence.
+    This is a WATCH bucket only; strict 5m entry gate and RR>=1.5 still apply before ENTRY.
+    """
+    if not row or direction not in {"LONG","SHORT"}: return False,0,[]
+    s=direction.lower(); t=trend(direction); o=opp(direction); pts=0; reasons=[]
+    loc=str(row.get("1H_location") or "").strip().lower()
+    favorable="discount" if direction=="LONG" else "premium"
+    if loc!=favorable:return False,0,["not at favorable 1H reversal location"]
+    pts+=25; reasons.append(f"1H {loc} reversal location (25)")
+    # Reversal must oppose at least one higher-timeframe trend; aligned continuation belongs in normal tracks.
+    opposed=sum(row.get(tf)==o for tf in ("1D","4H","1H"))
+    if opposed<1:return False,0,["not a counter-trend reversal"]
+    pts+=min(15,opposed*5); reasons.append(f"counter-trend context {opposed}/3 ({min(15,opposed*5)})")
+    sweep=truthy(row.get(f"{s}_sweep15")); mss=truthy(row.get(f"{s}_mss15")); disp=truthy(row.get(f"{s}_disp15"))
+    if not sweep:return False,0,["15m liquidity sweep required"]
+    pts+=15; reasons.append("15m liquidity sweep (15)")
+    if mss:pts+=15;reasons.append("15m MSS/CHoCH (15)")
+    if disp:pts+=10;reasons.append("15m displacement (10)")
+    # Need at least one structure-confirmation beyond the sweep.
+    if not (mss or disp):return False,pts,["sweep seen but reversal structure unconfirmed"]
+    fvg=str(row.get(f"{s}_fvg5") or "").lower()
+    if fvg==t:pts+=10;reasons.append("5m FVG aligned with reversal (10)")
+    if truthy(row.get(f"{s}_entry_model_ready")):pts+=5;reasons.append("5m entry model ready (5)")
+    rr=num(row.get(f"{s}_rr"))
+    if rr is not None and rr>=1.5:pts+=5;reasons.append("RR >= 1.5 (5)")
+    chase=max(num(row.get(f"{s}_chase_penalty")) or 0,0)
+    penalty=min(20,int(round(chase*4)))
+    if penalty:pts-=penalty;reasons.append(f"anti-chase (-{penalty})")
+    pts=int(max(0,min(100,pts)))
+    return pts>=MIN_REVERSAL_EARLY_SCORE,pts,reasons
+
 def normalize_side(v):
     v=str(v or "").upper(); return "LONG" if v in {"BUY","LONG"} else "SHORT" if v in {"SELL","SHORT"} else None
 
@@ -137,7 +171,7 @@ def add(sym,d,bucket,extra=None):
                 if (x["symbol"],x["direction"])==key:x.update(extra)
         return
     seen.add(key);row=by_symbol.get(sym);score=score_100(row,d)
-    notes={"CURRENT_POSITION":"Current Bybit open position; always included while open.","EARLY_MOMENTUM":"STORJ_TYPE_V3 Early Momentum; strict 5m trigger still required.","DAILY_RECOMMENDATION":"Daily recommendation selected from current scan; late-location hard gate applied.","HIGH_VOLATILITY_CRYPTO":"Crypto-only high-volatility recommendation from current scan; overextension/location gates applied; strict 5m trigger still required."}
+    notes={"CURRENT_POSITION":"Current Bybit open position; always included while open.","EARLY_MOMENTUM":"STORJ_TYPE_V3 Early Momentum; strict 5m trigger still required.","DAILY_RECOMMENDATION":"Daily recommendation selected from current scan; late-location hard gate applied.","HIGH_VOLATILITY_CRYPTO":"Crypto-only high-volatility recommendation from current scan; overextension/location gates applied; strict 5m trigger still required.","REVERSAL_EARLY":"Counter-trend reversal watch candidate at favorable location; strict 5m trigger and RR >= 1.5 still required before ENTRY."}
     x={"symbol":sym,"direction":d,"score":score,"score_scale":100,"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","note":notes.get(bucket,"Core default symbol; monitored continuously."),"updated_at":now}
     if extra:x.update(extra)
     items.append(x)
@@ -168,6 +202,16 @@ for sym,row in by_symbol.items():
 early.sort(reverse=True)
 for em,sc,sym,d,reasons in early[:EARLY_MOMENTUM_COUNT]:add(sym,d,"EARLY_MOMENTUM",{"early_momentum":True,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_score":em,"early_momentum_score_scale":100,"early_momentum_grade":"STRONG" if em>=80 else "RECOMMEND","early_momentum_reasons":reasons})
 
+reversals=[]
+for sym,row in by_symbol.items():
+    if sym in position_symbols:continue
+    for d in ("LONG","SHORT"):
+        ok,rv,reasons=reversal_early(row,d)
+        if ok:reversals.append((rv,score_100(row,d) or 0,sym,d,reasons))
+reversals.sort(reverse=True)
+for rv,sc,sym,d,reasons in reversals[:REVERSAL_EARLY_COUNT]:
+    add(sym,d,"REVERSAL_EARLY",{"reversal_early":True,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","reversal_early_score":rv,"reversal_early_score_scale":100,"reversal_early_reasons":reasons})
+
 highvol=[]
 for sym,row in by_symbol.items():
     if not crypto_native(sym) or sym in position_symbols:continue
@@ -177,6 +221,6 @@ for sym,row in by_symbol.items():
 highvol.sort(reverse=True)
 for hv,pct,sym,d,reasons in highvol[:HIGH_VOLATILITY_COUNT]:add(sym,d,"HIGH_VOLATILITY_CRYPTO",{"high_volatility":True,"high_volatility_score":hv,"high_volatility_score_scale":100,"high_volatility_24h_abs_pct":round(pct,4),"high_volatility_reasons":reasons})
 
-payload={"ok":True,"version":22,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_THREE_TRACKS","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"daily_late_location_hard_gate":True,"early_momentum_count":len([x for x in items if x["bucket"]=="EARLY_MOMENTUM"]),"early_momentum_max":EARLY_MOMENTUM_COUNT,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_minimum_score":MIN_EARLY_MOMENTUM_SCORE,"high_volatility_crypto_count":len([x for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]),"high_volatility_crypto_max":HIGH_VOLATILITY_COUNT,"high_volatility_crypto_minimum_score":MIN_HIGH_VOLATILITY_SCORE,"high_volatility_crypto_only":True,"high_volatility_overextension_reject":"abs(24h)>=40% or chase>=4","high_volatility_components":"24h move 30 + turnover 15 + TF alignment 20 + BTC RS 15 + OI 10 + ICT 10 - chase penalty","persistent_setup_count":0,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},"items":items}
+payload={"ok":True,"version":22,"updated_at":now,"scan_fresh_only":True,"policy":{"mode":"CORE_PLUS_POSITIONS_PLUS_CURRENT_SCAN_THREE_TRACKS","default_symbols":DEFAULT_SYMBOLS,"include_current_positions":True,"position_source":position_source,"position_fetch_ok":position_fetch_ok,"position_symbols":position_symbols,"daily_recommendation_count":len([x for x in items if x["bucket"]=="DAILY_RECOMMENDATION"]),"daily_recommendation_max":MAX_DAILY_RECOMMENDATIONS,"minimum_watch_score":MIN_WATCH_SCORE,"daily_late_location_hard_gate":True,"early_momentum_count":len([x for x in items if x["bucket"]=="EARLY_MOMENTUM"]),"early_momentum_max":EARLY_MOMENTUM_COUNT,"early_momentum_model":"STORJ_TYPE_V3","early_momentum_minimum_score":MIN_EARLY_MOMENTUM_SCORE,"reversal_early_count":len([x for x in items if x["bucket"]=="REVERSAL_EARLY"]),"reversal_early_max":REVERSAL_EARLY_COUNT,"reversal_early_minimum_score":MIN_REVERSAL_EARLY_SCORE,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","reversal_early_rules":"favorable 1H discount/premium + counter-trend HTF context + mandatory 15m liquidity sweep + MSS/CHoCH or displacement; 5m FVG/entry readiness/RR add score; no forced pick","high_volatility_crypto_count":len([x for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]),"high_volatility_crypto_max":HIGH_VOLATILITY_COUNT,"high_volatility_crypto_minimum_score":MIN_HIGH_VOLATILITY_SCORE,"high_volatility_crypto_only":True,"high_volatility_overextension_reject":"abs(24h)>=40% or chase>=4","high_volatility_components":"24h move 30 + turnover 15 + TF alignment 20 + BTC RS 15 + OI 10 + ICT 10 - chase penalty","persistent_setup_count":0,"recommendations_must_exist_in_current_scan":True,"reuse_prior_watchlist_recommendations":False,"no_retrace_no_trade":True,"poi_arrival_is_entry":False,"entry_timeframe":"5m","minimum_rr":1.5},"items":items}
 OUTPUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
 print(json.dumps({"ok":True,"version":22,"daily":[(x["symbol"],x["direction"],x["score"]) for x in items if x["bucket"]=="DAILY_RECOMMENDATION"],"early":[(x["symbol"],x["direction"],x.get("early_momentum_score")) for x in items if x["bucket"]=="EARLY_MOMENTUM"],"high_volatility_crypto":[(x["symbol"],x["direction"],x.get("high_volatility_score"),x.get("high_volatility_24h_abs_pct")) for x in items if x["bucket"]=="HIGH_VOLATILITY_CRYPTO"]},ensure_ascii=False))
