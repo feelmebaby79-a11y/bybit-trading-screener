@@ -180,9 +180,38 @@ jobs:
               early.append(r)
           early.sort(key=lambda x:x["_score100"],reverse=True); early=early[:3]
           for r in early:add(str(r["symbol"]),"EARLY_MOMENTUM",r)
-          wl={"ok":True,"version":25,"updated_at":generated,"scan_fresh_only":True,"policy":{"mode":"CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM","position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,"position_symbols":positions,"position_fetched_at":pf,"score_scale":100,"score_formula":"HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5","daily_recommendation_count":len(recs),"early_momentum_count":len(early),"early_momentum_max":3,"early_momentum_no_forced_pick":True,"no_retrace_no_trade":True,"minimum_rr":1.5},"items":items}
+          # Reversal Early: counter-trend candidate at favorable 1H location.
+          # Mandatory 15m liquidity sweep + (MSS/CHoCH or displacement). No forced picks.
+          reversal=[]
+          for r in rows:
+              side=r["_side"]; p=side.lower(); trend="bullish" if side=="LONG" else "bearish"; opp="bearish" if side=="LONG" else "bullish"
+              loc=str(r.get("1H_location") or "").lower(); fav=(loc=="discount" if side=="LONG" else loc=="premium")
+              if not fav: continue
+              opposed=sum(r.get(tf)==opp for tf in ("1D","4H","1H"))
+              if opposed<1: continue
+              sweep=b(r.get(p+"_sweep15")); mss=b(r.get(p+"_mss15")); disp=b(r.get(p+"_disp15"))
+              if not sweep or not (mss or disp): continue
+              pts=25+min(15,opposed*5)+15+(15 if mss else 0)+(10 if disp else 0)
+              if str(r.get(p+"_fvg5") or "").lower()==trend: pts+=10
+              if b(r.get(p+"_entry_model_ready")): pts+=5
+              rr=n(r.get(p+"_rr"),0)
+              if rr>=1.5: pts+=5
+              chase=max(0,n(r.get(p+"_chase_penalty"),0)); pts-=min(20,round(chase*4))
+              rv=max(0,min(100,round(pts)))
+              if rv>=65:
+                  q=dict(r); q["_reversal_score"]=rv
+                  q["_reversal_reasons"]={"favorable_1h_location":loc,"countertrend_htf_count":opposed,"sweep15":sweep,"mss15":mss,"displacement15":disp,"fvg5_aligned":str(r.get(p+"_fvg5") or "").lower()==trend,"rr":rr}
+                  reversal.append(q)
+          reversal.sort(key=lambda x:x["_reversal_score"],reverse=True); reversal=reversal[:3]
+          for r in reversal:
+              add(str(r["symbol"]),"REVERSAL_EARLY",r)
+              items[-1]["reversal_early"]=True
+              items[-1]["reversal_early_score"]=r["_reversal_score"]
+              items[-1]["reversal_early_score_scale"]=100
+              items[-1]["reversal_early_reasons"]=r["_reversal_reasons"]
+          wl={"ok":True,"version":25,"updated_at":generated,"scan_fresh_only":True,"policy":{"mode":"CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM_REVERSAL_EARLY","position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,"position_symbols":positions,"position_fetched_at":pf,"score_scale":100,"score_formula":"HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5","daily_recommendation_count":len(recs),"early_momentum_count":len(early),"early_momentum_max":3,"early_momentum_no_forced_pick":True,"reversal_early_count":len(reversal),"reversal_early_max":3,"reversal_early_minimum_score":65,"reversal_early_no_forced_pick":True,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","no_retrace_no_trade":True,"minimum_rr":1.5},"items":items}
           with open("latest/watchlist.json","w",encoding="utf-8") as f:json.dump(wl,f,ensure_ascii=False,indent=2)
-          print("WATCHLIST100",generated,"positions",positions,"daily",[(x["symbol"],x["_side"],x["_score100"]) for x in recs],"early",[(x["symbol"],x["_side"],x["_score100"]) for x in early])
+          print("WATCHLIST100",generated,"positions",positions,"daily",[(x["symbol"],x["_side"],x["_score100"]) for x in recs],"early",[(x["symbol"],x["_side"],x["_score100"]) for x in early],"reversal",[(x["symbol"],x["_side"],x["_reversal_score"]) for x in reversal])
           PY
 
       - name: Create Pages site
