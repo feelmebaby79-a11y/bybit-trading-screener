@@ -27,6 +27,16 @@ BASES = [
     "https://bybit-trading-screener.feelmebaby79.workers.dev",
     "https://api.bybit.com",
     "https://api.bytick.com",
+    # Official Bybit regional mainnet hosts. Public market endpoints do not
+    # require authentication; these provide network-level failover when a
+    # runner egress region is blocked on the global hosts.
+    "https://api.bybit.tr",
+    "https://api.bybit.kz",
+    "https://api.bybitgeorgia.ge",
+    "https://api.bybit.ae",
+    "https://api.bybit.id",
+    "https://api.manepa.jp",
+    "https://api.spark-fintech.com",
 ]
 
 CATEGORY = "linear"
