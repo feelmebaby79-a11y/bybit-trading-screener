@@ -102,10 +102,12 @@ class Cfg:
 # =========================================================
 
 def api(path, params, cfg, retries=4):
-    """Request public Bybit market data with endpoint failover."""
+    """Request public Bybit market data with fast endpoint failover."""
     errors = []
 
-    for base in BASES:
+    # BASES is reordered after the first successful request so every kline
+    # request does not repeatedly hit a geo-blocked endpoint first.
+    for base in list(BASES):
         url = base + path
 
         for i in range(retries):
@@ -116,16 +118,19 @@ def api(path, params, cfg, retries=4):
                     timeout=cfg.timeout,
                 )
 
-                if not r.ok:
-                    print(
-                        f"PUBLIC API {base} HTTP {r.status_code}: "
-                        f"{r.text[:300]}"
-                    )
+                if r.status_code == 403:
+                    errors.append(f"{base}: HTTP 403")
+                    print(f"PUBLIC API geo-blocked: {base}; failing over")
+                    break
 
                 r.raise_for_status()
                 j = r.json()
 
                 if j.get("retCode") == 0:
+                    if base != BASES[0]:
+                        BASES.remove(base)
+                        BASES.insert(0, base)
+                        print(f"PUBLIC API active endpoint: {base}")
                     return j
 
                 err = RuntimeError(
@@ -141,7 +146,7 @@ def api(path, params, cfg, retries=4):
         print(f"PUBLIC API failover: {base} failed for {path}")
 
     raise RuntimeError(
-        f"{path}: all public endpoints failed: " + " | ".join(errors[-6:])
+        f"{path}: all public endpoints failed: " + " | ".join(errors[-10:])
     )
 
 # =========================================================
