@@ -1,3 +1,4 @@
+# realtime-rescan-trigger: 2026-09-29T17:58+09:00
 #!/usr/bin/env python3
 
 # -*- coding: utf-8 -*-
