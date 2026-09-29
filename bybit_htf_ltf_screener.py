@@ -1,4 +1,4 @@
-# realtime-rescan-trigger: 2026-09-29T20:17+09:00
+# realtime-rescan-trigger: 2026-09-29T20:06+09:00
 #!/usr/bin/env python3
 
 # -*- coding: utf-8 -*-
@@ -23,7 +23,11 @@ import requests
 
 # =========================================================
 
-BASES = ["https://bybit-trading-screener.feelmebaby79.workers.dev", "https://api.bybit.com", "https://api.bytick.com"]
+BASES = [
+    "https://bybit-trading-screener.feelmebaby79.workers.dev",
+    "https://api.bybit.com",
+    "https://api.bytick.com",
+]
 
 CATEGORY = "linear"
 
@@ -87,22 +91,48 @@ class Cfg:
 
 # =========================================================
 
-def api(path, params, cfg, retries=3):
-    err = None
+def api(path, params, cfg, retries=4):
+    """Request public Bybit market data with endpoint failover."""
+    errors = []
+
     for base in BASES:
         url = base + path
+
         for i in range(retries):
             try:
-                r = S.get(url, params=params, timeout=cfg.timeout)
+                r = S.get(
+                    url,
+                    params=params,
+                    timeout=cfg.timeout,
+                )
+
+                if not r.ok:
+                    print(
+                        f"PUBLIC API {base} HTTP {r.status_code}: "
+                        f"{r.text[:300]}"
+                    )
+
                 r.raise_for_status()
                 j = r.json()
+
                 if j.get("retCode") == 0:
                     return j
-                err = RuntimeError(j.get("retMsg", "Unknown Bybit API error"))
+
+                err = RuntimeError(
+                    j.get("retMsg", "Unknown Bybit API error")
+                )
+                errors.append(f"{base}: {err}")
+
             except Exception as e:
-                err = e
+                errors.append(f"{base}: {e}")
+
             time.sleep(0.5 * (2 ** i))
-    raise RuntimeError(f"{path}: all endpoints failed: {err}")
+
+        print(f"PUBLIC API failover: {base} failed for {path}")
+
+    raise RuntimeError(
+        f"{path}: all public endpoints failed: " + " | ".join(errors[-6:])
+    )
 
 # =========================================================
 
