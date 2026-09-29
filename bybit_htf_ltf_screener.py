@@ -656,73 +656,70 @@ def structure(d):
 
 # =========================================================
 
-def location(d, n=60):
+def location(d, eq_band=0.10):
+    """
+    Premium / Discount from the CURRENT CONFIRMED dealing range.
 
-    z = d.tail(
+    The old implementation used the raw highest high / lowest low of the
+    latest 60 candles.  That is a rolling-window statistic, not an ICT/SMC
+    dealing range, and can misclassify location when an older extreme remains
+    inside the window.
 
-        min(
+    Build the range from the most recent confirmed opposing swing high/low
+    (same confirmed-pivot logic used by structure()).  Price is equilibrium
+    around the 50% midpoint; below/above that band is discount/premium.
+    """
+    x = swings(d)
+    sh_idx = list(x.index[x["swing_high"]])
+    sl_idx = list(x.index[x["swing_low"]])
 
-            n,
+    if not sh_idx or not sl_idx:
+        return ("equilibrium", 0.5, np.nan, np.nan, np.nan)
 
-            len(d),
+    # Start with the latest confirmed pivot and pair it with the latest
+    # confirmed opposing pivot that occurred before it.  This prevents an
+    # arbitrary fixed lookback from defining the dealing range.
+    last_h = sh_idx[-1]
+    last_l = sl_idx[-1]
 
-        )
-
-    )
-
-    hi = float(
-
-        z.high.max()
-
-    )
-
-    lo = float(
-
-        z.low.min()
-
-    )
-
-    c = float(
-
-        z.close.iloc[-1]
-
-    )
-
-    pos = (
-
-        (c - lo) / (hi - lo)
-
-        if hi > lo
-
-        else 0.5
-
-    )
-
-    if pos <= 0.38:
-
-        zone = "discount"
-
-    elif pos >= 0.62:
-
-        zone = "premium"
-
+    if last_h > last_l:
+        prior_lows = [i for i in sl_idx if i < last_h]
+        if not prior_lows:
+            return ("equilibrium", 0.5, np.nan, np.nan, np.nan)
+        hi = float(x.loc[last_h, "high"])
+        lo = float(x.loc[prior_lows[-1], "low"])
     else:
+        prior_highs = [i for i in sh_idx if i < last_l]
+        if not prior_highs:
+            return ("equilibrium", 0.5, np.nan, np.nan, np.nan)
+        hi = float(x.loc[prior_highs[-1], "high"])
+        lo = float(x.loc[last_l, "low"])
 
+    # Guard against malformed/non-opposing pivots.  Fall back to the latest
+    # confirmed swing values rather than a rolling high/low window.
+    if not np.isfinite(hi) or not np.isfinite(lo) or hi <= lo:
+        hi = float(x.loc[last_h, "high"])
+        lo = float(x.loc[last_l, "low"])
+    if not np.isfinite(hi) or not np.isfinite(lo) or hi <= lo:
+        return ("equilibrium", 0.5, hi, lo, np.nan)
+
+    c = float(x.close.iloc[-1])
+    pos = (c - lo) / (hi - lo)
+    eq = (hi + lo) / 2.0
+
+    # 45%-55% is the explicit equilibrium band around the 50% midpoint.
+    half_band = max(0.0, min(float(eq_band), 1.0)) / 2.0
+    eq_low = 0.5 - half_band
+    eq_high = 0.5 + half_band
+
+    if pos < eq_low:
+        zone = "discount"
+    elif pos > eq_high:
+        zone = "premium"
+    else:
         zone = "equilibrium"
 
-    return (
-
-        zone,
-
-        pos,
-
-        hi,
-
-        lo,
-
-        (hi + lo) / 2,
-
-    )
+    return (zone, pos, hi, lo, eq)
 
 # =========================================================
 
