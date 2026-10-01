@@ -6,8 +6,8 @@ on:
     branches:
       - main
   schedule:
-    # 매일 한국시간 오전 8시 35분 — 08:50 브리핑 전에 fresh full-universe scan 확보
-    - cron: "35 23 * * *"
+    # 매일 한국시간 오전 08:50 정각 — 브리핑용 full-universe scan은 이 실행에서 새로 생성
+    - cron: "50 23 * * *"
 
 permissions:
   contents: write
