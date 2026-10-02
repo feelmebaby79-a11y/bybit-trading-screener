@@ -231,14 +231,14 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           tmpdir="$(mktemp -d)"
-          cp -a latest/. "$tmpdir/"
+          cp latest/scan.json latest/watchlist.json latest/scan_results.csv latest/scan_results_long.csv latest/scan_results_short.csv "$tmpdir/"
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git reset --hard origin/main
             mkdir -p latest
             cp -a "$tmpdir/." latest/
             test -s latest/scan.json || { echo "Refusing to commit empty scan.json"; exit 1; }
-            git add latest/
+            git add latest/scan.json latest/watchlist.json latest/scan_results.csv latest/scan_results_long.csv latest/scan_results_short.csv
             if git diff --cached --quiet; then echo "No repository changes"; break; fi
             git commit -m "Update latest Bybit scan [skip actions]"
             if git push origin HEAD:main; then echo "Scan results pushed successfully"; break; fi
