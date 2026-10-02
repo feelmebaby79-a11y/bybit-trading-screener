@@ -5,6 +5,9 @@ on:
     paths:
       - 'realtime-trigger.txt'
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Bybit HTF LTF Scan"]
+    types: [completed]
   schedule:
     - cron: '*/5 * * * *'
 
@@ -17,6 +20,7 @@ concurrency:
 
 jobs:
   snapshot:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
