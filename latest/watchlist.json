@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 25,
-  "updated_at": "2026-10-06T00:05:57.862989+00:00",
+  "updated_at": "2026-10-06T00:58:44.301591+00:00",
   "scan_fresh_only": true,
   "policy": {
     "mode": "CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM_REVERSAL_EARLY",
@@ -10,11 +10,11 @@
     "position_symbols": [
       "ETHUSDT"
     ],
-    "position_fetched_at": "2026-10-06T00:05:57.862965+00:00",
+    "position_fetched_at": "2026-10-06T00:58:44.301567+00:00",
     "score_scale": 100,
     "score_formula": "HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5",
     "daily_recommendation_count": 3,
-    "early_momentum_count": 2,
+    "early_momentum_count": 1,
     "early_momentum_max": 3,
     "early_momentum_no_forced_pick": true,
     "reversal_early_count": 0,
@@ -37,12 +37,12 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
       "symbol": "ETHUSDT",
       "direction": "SHORT",
-      "score": 52,
+      "score": 57,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 12,
@@ -50,15 +50,15 @@
         "15M_ICT": 5,
         "5M_FVG_OB_RETRACE": 5,
         "ENTRY_LOCATION_CHASE": 10,
-        "RR": 0,
-        "BTC_MARKET_ENV": 5
+        "RR": 10,
+        "BTC_MARKET_ENV": 0
       },
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
       "symbol": "XRPUSDT",
@@ -71,7 +71,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
       "symbol": "SOLUSDT",
@@ -84,7 +84,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
       "symbol": "BNBUSDT",
@@ -105,12 +105,12 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
       "symbol": "ETHUSDT",
       "direction": "SHORT",
-      "score": 52,
+      "score": 57,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 12,
@@ -118,57 +118,15 @@
         "15M_ICT": 5,
         "5M_FVG_OB_RETRACE": 5,
         "ENTRY_LOCATION_CHASE": 10,
-        "RR": 0,
-        "BTC_MARKET_ENV": 5
+        "RR": 10,
+        "BTC_MARKET_ENV": 0
       },
       "poi_low": null,
       "poi_high": null,
       "status": "ACTIVE",
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
-    },
-    {
-      "symbol": "XAUUSDT",
-      "direction": "SHORT",
-      "score": 70,
-      "score_scale": 100,
-      "score_breakdown": {
-        "HTF": 25,
-        "1H_STRUCTURE_LOCATION": 7,
-        "15M_ICT": 10,
-        "5M_FVG_OB_RETRACE": 5,
-        "ENTRY_LOCATION_CHASE": 10,
-        "RR": 8,
-        "BTC_MARKET_ENV": 5
-      },
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
-    },
-    {
-      "symbol": "VVVUSDT",
-      "direction": "LONG",
-      "score": 67,
-      "score_scale": 100,
-      "score_breakdown": {
-        "HTF": 25,
-        "1H_STRUCTURE_LOCATION": 15,
-        "15M_ICT": 5,
-        "5M_FVG_OB_RETRACE": 0,
-        "ENTRY_LOCATION_CHASE": 10,
-        "RR": 10,
-        "BTC_MARKET_ENV": 2
-      },
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
       "symbol": "LITUSDT",
@@ -178,7 +136,28 @@
       "score_breakdown": {
         "HTF": 25,
         "1H_STRUCTURE_LOCATION": 7,
-        "15M_ICT": 5,
+        "15M_ICT": 10,
+        "5M_FVG_OB_RETRACE": 0,
+        "ENTRY_LOCATION_CHASE": 10,
+        "RR": 10,
+        "BTC_MARKET_ENV": 5
+      },
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
+    },
+    {
+      "symbol": "MUUSDT",
+      "direction": "SHORT",
+      "score": 67,
+      "score_scale": 100,
+      "score_breakdown": {
+        "HTF": 12,
+        "1H_STRUCTURE_LOCATION": 15,
+        "15M_ICT": 10,
         "5M_FVG_OB_RETRACE": 5,
         "ENTRY_LOCATION_CHASE": 10,
         "RR": 10,
@@ -189,20 +168,41 @@
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     },
     {
-      "symbol": "XAUUSDT",
+      "symbol": "LDOUSDT",
+      "direction": "LONG",
+      "score": 65,
+      "score_scale": 100,
+      "score_breakdown": {
+        "HTF": 25,
+        "1H_STRUCTURE_LOCATION": 15,
+        "15M_ICT": 5,
+        "5M_FVG_OB_RETRACE": 0,
+        "ENTRY_LOCATION_CHASE": 10,
+        "RR": 10,
+        "BTC_MARKET_ENV": 0
+      },
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
+    },
+    {
+      "symbol": "LITUSDT",
       "direction": "SHORT",
-      "score": 70,
+      "score": 67,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 25,
         "1H_STRUCTURE_LOCATION": 7,
         "15M_ICT": 10,
-        "5M_FVG_OB_RETRACE": 5,
+        "5M_FVG_OB_RETRACE": 0,
         "ENTRY_LOCATION_CHASE": 10,
-        "RR": 8,
+        "RR": 10,
         "BTC_MARKET_ENV": 5
       },
       "poi_low": null,
@@ -210,28 +210,7 @@
       "status": "ACTIVE",
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
-    },
-    {
-      "symbol": "XAUTUSDT",
-      "direction": "SHORT",
-      "score": 66,
-      "score_scale": 100,
-      "score_breakdown": {
-        "HTF": 25,
-        "1H_STRUCTURE_LOCATION": 7,
-        "15M_ICT": 10,
-        "5M_FVG_OB_RETRACE": 5,
-        "ENTRY_LOCATION_CHASE": 10,
-        "RR": 4,
-        "BTC_MARKET_ENV": 5
-      },
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "EARLY_MOMENTUM",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-06T00:05:57.862989+00:00"
+      "updated_at": "2026-10-06T00:58:44.301591+00:00"
     }
   ]
 }
