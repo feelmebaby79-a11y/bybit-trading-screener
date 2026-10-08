@@ -112,6 +112,23 @@ jobs:
           print("Universe:",len(full),"Positions:",position_symbols,"position_fetch_ok:",position_fetch_ok)
           PY
 
+      - name: Verify fresh private positions before watchlist
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone, timedelta
+          s=json.load(open('latest/scan.json',encoding='utf-8'))
+          cutoff=datetime.now(timezone(timedelta(hours=9))).replace(hour=8,minute=50,second=0,microsecond=0).astimezone(timezone.utc)
+          def stamp(k):
+              return datetime.fromisoformat(str(s[k]).replace('Z','+00:00')).astimezone(timezone.utc)
+          assert stamp('generated_at') >= cutoff, 'scan predates 08:50 KST'
+          assert s.get('position_fetch_ok') is True, 'Private API position fetch failed'
+          assert stamp('position_fetched_at') >= cutoff, 'positions are stale'
+          assert isinstance(s.get('position_symbols'),list) and isinstance(s.get('positions'),dict), 'missing position payload'
+          assert set(s['position_symbols']) == set(s['positions']), 'position payload mismatch'
+          print('Fresh scan and private positions verified')
+          PY
+
       - name: Rebuild watchlist with canonical 100-point score
         run: |
           python - <<'PY'
