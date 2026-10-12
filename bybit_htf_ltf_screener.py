@@ -675,69 +675,55 @@ def structure(d):
 
 # =========================================================
 
-def location(d, eq_band=0.10):
+def location(d, eq_band=0.10, reference_price=None):
+    """Confirmed structure-based dealing range, never an arbitrary latest pivot pair.
+
+    Only use a confirmed opposing swing range after a closing-price break of
+    structure. Without a confirmed BOS, return unknown instead of falsely
+    advertising a discount or premium. Use a live 5m reference price when
+    classifying the HTF range, not the previous closed 1H candle.
     """
-    Premium / Discount from the CURRENT CONFIRMED dealing range.
-
-    The old implementation used the raw highest high / lowest low of the
-    latest 60 candles.  That is a rolling-window statistic, not an ICT/SMC
-    dealing range, and can misclassify location when an older extreme remains
-    inside the window.
-
-    Build the range from the most recent confirmed opposing swing high/low
-    (same confirmed-pivot logic used by structure()).  Price is equilibrium
-    around the 50% midpoint; below/above that band is discount/premium.
-    """
-    x = swings(d)
-    sh_idx = list(x.index[x["swing_high"]])
-    sl_idx = list(x.index[x["swing_low"]])
-
-    if not sh_idx or not sl_idx:
-        return ("equilibrium", 0.5, np.nan, np.nan, np.nan)
-
-    # Start with the latest confirmed pivot and pair it with the latest
-    # confirmed opposing pivot that occurred before it.  This prevents an
-    # arbitrary fixed lookback from defining the dealing range.
-    last_h = sh_idx[-1]
-    last_l = sl_idx[-1]
-
-    if last_h > last_l:
-        prior_lows = [i for i in sl_idx if i < last_h]
-        if not prior_lows:
-            return ("equilibrium", 0.5, np.nan, np.nan, np.nan)
-        hi = float(x.loc[last_h, "high"])
-        lo = float(x.loc[prior_lows[-1], "low"])
-    else:
-        prior_highs = [i for i in sh_idx if i < last_l]
-        if not prior_highs:
-            return ("equilibrium", 0.5, np.nan, np.nan, np.nan)
-        hi = float(x.loc[prior_highs[-1], "high"])
-        lo = float(x.loc[last_l, "low"])
-
-    # Guard against malformed/non-opposing pivots.  Fall back to the latest
-    # confirmed swing values rather than a rolling high/low window.
-    if not np.isfinite(hi) or not np.isfinite(lo) or hi <= lo:
-        hi = float(x.loc[last_h, "high"])
-        lo = float(x.loc[last_l, "low"])
-    if not np.isfinite(hi) or not np.isfinite(lo) or hi <= lo:
-        return ("equilibrium", 0.5, hi, lo, np.nan)
-
-    c = float(x.close.iloc[-1])
-    pos = (c - lo) / (hi - lo)
+    x = swings(d.reset_index(drop=True))
+    if len(x) < 8:
+        return ("unknown", np.nan, np.nan, np.nan, np.nan)
+    highs = [(int(i), float(x.high.iloc[i])) for i in x.index[x.swing_high]]
+    lows = [(int(i), float(x.low.iloc[i])) for i in x.index[x.swing_low]]
+    candidates = []
+    for hi_i, hi in highs:
+        prior = [(j, v) for j, v in lows if j < hi_i and v < hi]
+        if not prior:
+            continue
+        lo_i, lo = prior[-1]
+        # Both pivots must have been confirmed (right=2) before BOS.
+        for k in range(hi_i + 3, len(x)):
+            if float(x.close.iloc[k]) > hi:
+                candidates.append((k, lo_i, hi_i, lo, hi, "bullish"))
+                break
+    for lo_i, lo in lows:
+        prior = [(j, v) for j, v in highs if j < lo_i and v > lo]
+        if not prior:
+            continue
+        hi_i, hi = prior[-1]
+        for k in range(lo_i + 3, len(x)):
+            if float(x.close.iloc[k]) < lo:
+                candidates.append((k, hi_i, lo_i, lo, hi, "bearish"))
+                break
+    if not candidates:
+        return ("unknown", np.nan, np.nan, np.nan, np.nan)
+    bos_i, hi_i, lo_i, lo, hi, side = max(candidates, key=lambda z: z[0])
+    # A close through the opposite structural boundary invalidates this range.
+    after = x.iloc[bos_i + 1:]
+    if side == "bullish" and (after.close < lo).any():
+        return ("unknown", np.nan, np.nan, np.nan, np.nan)
+    if side == "bearish" and (after.close > hi).any():
+        return ("unknown", np.nan, np.nan, np.nan, np.nan)
+    price = float(reference_price) if reference_price is not None else float(x.close.iloc[-1])
+    if not np.isfinite(price) or hi <= lo:
+        return ("unknown", np.nan, np.nan, np.nan, np.nan)
+    pos = (price - lo) / (hi - lo)
     eq = (hi + lo) / 2.0
-
-    # 45%-55% is the explicit equilibrium band around the 50% midpoint.
     half_band = max(0.0, min(float(eq_band), 1.0)) / 2.0
-    eq_low = 0.5 - half_band
-    eq_high = 0.5 + half_band
-
-    if pos < eq_low:
-        zone = "discount"
-    elif pos > eq_high:
-        zone = "premium"
-    else:
-        zone = "equilibrium"
-
+    zone = "discount" if pos < 0.5-half_band else "premium" if pos > 0.5+half_band else "equilibrium"
     return (zone, pos, hi, lo, eq)
 
 # =========================================================
@@ -1180,11 +1166,11 @@ def rr_hint(d, side):
 
 # =========================================================
 
-def feat(d):
+def feat(d, reference_price=None):
 
     tr, sc, _, _ = structure(d)
 
-    zone, pos, hi, lo, eq = location(d)
+    zone, pos, hi, lo, eq = location(d, reference_price=reference_price)
 
     rv = rsi(
 
