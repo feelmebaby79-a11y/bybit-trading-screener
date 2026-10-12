@@ -286,7 +286,7 @@ def universe(cfg):
 
     )
 
-    return out.head(cfg.max_symbols)
+    return out
 
 
 # =========================================================
@@ -1845,7 +1845,7 @@ def main():
 
         min_turnover=0,
 
-        max_symbols=100,
+        max_symbols=0,
 
     )
 
@@ -1853,7 +1853,7 @@ def main():
 
     print(
 
-        f"Universe: {len(U)} (active USDT perpetuals, max {cfg.max_symbols})"
+        f"Universe: {len(U)} (all active USDT perpetuals)"
 
     )
 
