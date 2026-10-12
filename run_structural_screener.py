@@ -119,11 +119,13 @@ if old_universe_cap in patched:
     patched = patched.replace(old_universe_cap, '    return out', 1)
 
 # Add structural metadata to feature dictionaries without changing scoring fields.
-old_feat = '''    tr, sc, _, _ = structure(d)\n\n    zone, pos, hi, lo, eq = location(d)'''
+old_feat = '''    tr, sc, _, _ = structure(d)\n\n    zone, pos, hi, lo, eq = location(d, reference_price=reference_price)'''
 new_feat = '''    tr, sc, _, _ = structure(d)\n\n    structure_meta = d.attrs.get("structure_meta", {})\n\n    zone, pos, hi, lo, eq = location(d)'''
+if old_feat not in patched: raise RuntimeError("Feature patch target missing; abort scan")
 patched = patched.replace(old_feat, new_feat, 1)
 old_eq = '''        "eq": eq,\n\n    }'''
 new_eq = '''        "eq": eq,\n\n        "protected_low": structure_meta.get("protected_low", np.nan),\n\n        "protected_high": structure_meta.get("protected_high", np.nan),\n\n        "last_bos_side": structure_meta.get("last_bos_side"),\n\n        "last_bos_level": structure_meta.get("last_bos_level", np.nan),\n\n        "last_choch_side": structure_meta.get("last_choch_side"),\n\n        "last_choch_level": structure_meta.get("last_choch_level", np.nan),\n\n    }'''
+if old_eq not in patched: raise RuntimeError("Structure metadata patch target missing; abort scan")
 patched = patched.replace(old_eq, new_eq, 1)
 
 # Persist 1D external-structure diagnostics in every scan CSV/JSON row.
