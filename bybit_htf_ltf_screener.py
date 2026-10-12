@@ -1427,7 +1427,7 @@ def scan_symbol(
 
     F = {
 
-        tf: feat(D[tf])
+        tf: feat(D[tf], reference_price=float(D["5m"].close.iloc[-1]))
 
         for tf in TFS
 
@@ -1466,6 +1466,13 @@ def scan_symbol(
         "4H_location": F["4H"]["zone"],
 
         "1H_location": F["1H"]["zone"],
+        "1H_range_low": F["1H"]["lo"],
+        "1H_range_high": F["1H"]["hi"],
+        "1H_range_eq": F["1H"]["eq"],
+        "1H_range_position_pct": F["1H"]["pos"] * 100 if np.isfinite(F["1H"]["pos"]) else np.nan,
+        "4H_range_low": F["4H"]["lo"],
+        "4H_range_high": F["4H"]["hi"],
+        "4H_range_eq": F["4H"]["eq"],
 
         "15m_rsi": F["15m"]["rsi"],
 
