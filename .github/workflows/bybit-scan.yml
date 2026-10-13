@@ -6,7 +6,7 @@ on:
     branches:
       - main
   schedule:
-    # 매일 한국시간 오전 08:50 정각 — 브리핑용 full-universe scan은 이 실행에서 새로 생성
+    # 매일 한국시간 오전 08:50 정각 (UTC 23:50) — 당일 신규 full-universe scan. GitHub scheduled runs can be delayed.
     - cron: "50 23 * * *"
 
 permissions:
@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: "bybit-htf-ltf-scan-main"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   scan:
