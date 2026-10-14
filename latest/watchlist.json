@@ -1,7 +1,7 @@
 {
   "ok": true,
   "version": 25,
-  "updated_at": "2026-10-14T00:50:39.845008+00:00",
+  "updated_at": "2026-10-14T01:18:47.097579+00:00",
   "scan_fresh_only": true,
   "policy": {
     "mode": "CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM_REVERSAL_EARLY",
@@ -10,7 +10,7 @@
     "position_symbols": [
       "ETHUSDT"
     ],
-    "position_fetched_at": "2026-10-14T00:50:39.844994+00:00",
+    "position_fetched_at": "2026-10-14T01:18:47.097559+00:00",
     "score_scale": 100,
     "score_formula": "HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5",
     "daily_recommendation_count": 3,
@@ -37,7 +37,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
       "symbol": "ETHUSDT",
@@ -50,7 +50,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
       "symbol": "XRPUSDT",
@@ -63,7 +63,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
       "symbol": "SOLUSDT",
@@ -76,7 +76,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
       "symbol": "BNBUSDT",
@@ -89,7 +89,7 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
       "symbol": "ETHUSDT",
@@ -102,32 +102,11 @@
       "status": "ACTIVE",
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
-      "symbol": "AEONUSDT",
+      "symbol": "REUSDT",
       "direction": "SHORT",
-      "score": 83,
-      "score_scale": 100,
-      "score_breakdown": {
-        "HTF": 25,
-        "1H_STRUCTURE_LOCATION": 15,
-        "15M_ICT": 15,
-        "5M_FVG_OB_RETRACE": 5,
-        "ENTRY_LOCATION_CHASE": 10,
-        "RR": 8,
-        "BTC_MARKET_ENV": 5
-      },
-      "poi_low": null,
-      "poi_high": null,
-      "status": "ACTIVE",
-      "bucket": "DAILY_RECOMMENDATION",
-      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
-    },
-    {
-      "symbol": "SKLUSDT",
-      "direction": "LONG",
       "score": 80,
       "score_scale": 100,
       "score_breakdown": {
@@ -144,16 +123,16 @@
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
-      "symbol": "CHIPUSDT",
-      "direction": "LONG",
-      "score": 72,
+      "symbol": "PRLUSDT",
+      "direction": "SHORT",
+      "score": 80,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 25,
-        "1H_STRUCTURE_LOCATION": 7,
+        "1H_STRUCTURE_LOCATION": 15,
         "15M_ICT": 10,
         "5M_FVG_OB_RETRACE": 5,
         "ENTRY_LOCATION_CHASE": 10,
@@ -165,20 +144,41 @@
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     },
     {
-      "symbol": "SSPCUSDT",
+      "symbol": "TOWNSUSDT",
       "direction": "SHORT",
-      "score": 72,
+      "score": 78,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 25,
-        "1H_STRUCTURE_LOCATION": 7,
+        "1H_STRUCTURE_LOCATION": 15,
         "15M_ICT": 10,
         "5M_FVG_OB_RETRACE": 5,
         "ENTRY_LOCATION_CHASE": 10,
-        "RR": 10,
+        "RR": 8,
+        "BTC_MARKET_ENV": 5
+      },
+      "poi_low": null,
+      "poi_high": null,
+      "status": "ACTIVE",
+      "bucket": "DAILY_RECOMMENDATION",
+      "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
+    },
+    {
+      "symbol": "XDCUSDT",
+      "direction": "LONG",
+      "score": 48,
+      "score_scale": 100,
+      "score_breakdown": {
+        "HTF": 25,
+        "1H_STRUCTURE_LOCATION": 0,
+        "15M_ICT": 10,
+        "5M_FVG_OB_RETRACE": 5,
+        "ENTRY_LOCATION_CHASE": 3,
+        "RR": 0,
         "BTC_MARKET_ENV": 5
       },
       "poi_low": null,
@@ -186,7 +186,7 @@
       "status": "ACTIVE",
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-14T00:50:39.845008+00:00"
+      "updated_at": "2026-10-14T01:18:47.097579+00:00"
     }
   ]
 }
