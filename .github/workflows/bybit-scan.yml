@@ -6,8 +6,8 @@ on:
     branches:
       - main
   schedule:
-    # 매일 한국시간 오전 08:50 정각 (UTC 23:50) — 당일 신규 full-universe scan. GitHub scheduled runs can be delayed.
-    - cron: "50 23 * * *"
+    # 매일 한국시간 오전 08:30 (UTC 23:30) — 08:50 브리핑 전 스캔 시작. GitHub scheduled runs can be delayed.
+    - cron: "30 23 * * *"
 
 permissions:
   contents: write
@@ -118,10 +118,10 @@ jobs:
           import json
           from datetime import datetime, timezone, timedelta
           s=json.load(open('latest/scan.json',encoding='utf-8'))
-          cutoff=datetime.now(timezone(timedelta(hours=9))).replace(hour=8,minute=50,second=0,microsecond=0).astimezone(timezone.utc)
+          cutoff=datetime.now(timezone(timedelta(hours=9))).replace(hour=8,minute=30,second=0,microsecond=0).astimezone(timezone.utc)
           def stamp(k):
               return datetime.fromisoformat(str(s[k]).replace('Z','+00:00')).astimezone(timezone.utc)
-          assert stamp('generated_at') >= cutoff, 'scan predates 08:50 KST'
+          assert stamp('generated_at') >= cutoff, 'scan predates 08:30 KST'
           assert s.get('position_fetch_ok') is True, 'Private API position fetch failed'
           assert stamp('position_fetched_at') >= cutoff, 'positions are stale'
           assert isinstance(s.get('position_symbols'),list) and isinstance(s.get('positions'),dict), 'missing position payload'
