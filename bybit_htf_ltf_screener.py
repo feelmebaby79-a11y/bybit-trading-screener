@@ -4,6 +4,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 import math
 
@@ -40,6 +42,14 @@ BASES = [
 ]
 
 CATEGORY = "linear"
+
+_thread_local = threading.local()
+
+def session():
+    if not hasattr(_thread_local, 'session'):
+        _thread_local.session = requests.Session()
+        _thread_local.session.headers.update({'User-Agent': 'bybit-htf-ltf-screener/3.0'})
+    return _thread_local.session
 
 S = requests.Session()
 
@@ -112,7 +122,7 @@ def api(path, params, cfg, retries=4):
 
         for i in range(retries):
             try:
-                r = S.get(
+                r = session().get(
                     url,
                     params=params,
                     timeout=cfg.timeout,
@@ -1850,79 +1860,30 @@ def main():
 
     )
 
+    # Bounded concurrency reduces sequential API latency without scanning fewer symbols.
+    # Per-thread HTTP sessions prevent requests.Session cross-thread sharing.
     rows = []
+    symbols = list(U.reset_index(drop=True).itertuples(index=False))
+    def scan_one(item):
+        i, r = item
+        turnover = float(r.turnover24h) if pd.notna(r.turnover24h) else 0
+        p24 = float(r.price24hPcnt) if pd.notna(r.price24hPcnt) else np.nan
+        return i, str(r.symbol), scan_symbol(r.symbol, turnover, p24, cfg)
 
-    for i, r in (
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(scan_one, item): item[0] for item in enumerate(symbols)}
+        for future in as_completed(futures):
+            i = futures[future]
+            try:
+                _, symbol, z = future.result()
+                if z:
+                    rows.append((i, z))
+                    print(f"[{len(rows)}/{len(symbols)}] {symbol} "
+                          f"L={z['long_score']:.1f} S={z['short_score']:.1f}", flush=True)
+            except Exception as exc:
+                print(f"[WARN] symbol_index={i} {exc}", flush=True)
 
-        U
-
-        .reset_index(drop=True)
-
-        .iterrows()
-
-    ):
-
-        try:
-
-            turnover = (
-
-                float(r.turnover24h)
-
-                if pd.notna(r.turnover24h)
-
-                else 0
-
-            )
-
-            p24 = (
-
-                float(r.price24hPcnt)
-
-                if pd.notna(r.price24hPcnt)
-
-                else np.nan
-
-            )
-
-            z = scan_symbol(
-
-                r.symbol,
-
-                turnover,
-
-                p24,
-
-                cfg,
-
-            )
-
-            if z:
-
-                rows.append(z)
-
-                print(
-
-                    f"[{i+1}/{len(U)}] "
-
-                    f"{r.symbol} "
-
-                    f"L={z['long_score']:.1f} "
-
-                    f"S={z['short_score']:.1f}"
-
-                )
-
-        except Exception as e:
-
-            print(
-
-                "[WARN]",
-
-                r.symbol,
-
-                e,
-
-            )
+    rows = [z for _, z in sorted(rows, key=lambda pair: pair[0])]
 
     if not rows:
 
