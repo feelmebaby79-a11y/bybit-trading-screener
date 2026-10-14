@@ -1,0 +1,66 @@
+name: Bybit Scan Completion Alert
+on:
+  workflow_run:
+    workflows: ["Bybit HTF LTF Scan"]
+    types: [completed]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  report:
+    if: ${{ github.event.workflow_run.event != 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build completion report and notify via GitHub issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+          repo=os.environ['REPO']; run_id=os.environ['RUN_ID']
+          token=os.environ['GH_TOKEN']; conclusion=os.environ['CONCLUSION']
+          base='https://api.github.com/repos/'+repo
+          headers={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'bybit-completion-alert'}
+          def api(path,method='GET',payload=None):
+              data=None if payload is None else json.dumps(payload,ensure_ascii=False).encode()
+              req=urllib.request.Request(base+path,data=data,headers=headers,method=method)
+              with urllib.request.urlopen(req,timeout=30) as resp:return json.load(resp)
+          now=datetime.now(timezone.utc)
+          kst=timezone(timedelta(hours=9))
+          title='[Bybit Scan] '+conclusion.upper()+' | run '+run_id
+          body=['# Bybit 스캔 완료 알림','',f'- Run: {os.environ["RUN_URL"]}',f'- Status: **{conclusion}**',f'- Commit: `{os.environ["RUN_SHA"]}`',f'- Checked at: {now.astimezone(kst).isoformat()}']
+          if conclusion=='success':
+              try:
+                  f=api('/contents/latest/scan.json')
+                  import base64
+                  d=json.loads(base64.b64decode(f['content']).decode())
+                  generated=datetime.fromisoformat(d['generated_at'].replace('Z','+00:00'))
+                  body += ['', '## 최신 스캔 검증',
+                    f'- generated_at: {d.get("generated_at")}',
+                    f'- universe_count: {d.get("universe_count")}',
+                    f'- position_fetch_ok: {d.get("position_fetch_ok")}',
+                    f'- position_symbols: {", ".join(d.get("position_symbols") or []) or "(none)"}',
+                    f'- LONG candidates: {len(d.get("longs") or [])}',
+                    f'- SHORT candidates: {len(d.get("shorts") or [])}']
+                  if generated < now-timedelta(hours=3) or d.get('position_fetch_ok') is not True:
+                      body+=['','**WARNING: scan file is stale or position fetch failed; do not trade on this report.**']
+                  for side in ('longs','shorts'):
+                      for row in (d.get(side) or [])[:5]:
+                          body.append('- '+side.upper()+': '+str(row.get('symbol','unknown')))
+              except Exception as e:body+=['','**ERROR verifying latest scan: '+str(e)+'**']
+          else:body+=['','**Scan failed/cancelled: review run logs. Do not reuse previous recommendations.**']
+          body+=['','This is an automated GitHub completion alert, NOT a ChatGPT-generated full market briefing.']
+          # Deduplicate by run ID if this workflow is retried.
+          existing=api('/issues?state=all&per_page=100')
+          if any(('[Bybit Scan]' in i.get('title','') and 'run '+run_id in i.get('title','')) for i in existing):
+              print('Already reported run',run_id)
+          else:
+              issue=api('/issues','POST',{'title':title,'body':'\n'.join(body)})
+              print('Created immediate completion issue:',issue['html_url'])
+          PY
