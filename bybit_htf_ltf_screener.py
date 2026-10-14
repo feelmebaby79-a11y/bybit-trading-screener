@@ -44,6 +44,7 @@ BASES = [
 CATEGORY = "linear"
 
 _thread_local = threading.local()
+_bases_lock = threading.Lock()
 
 def session():
     if not hasattr(_thread_local, 'session'):
@@ -137,10 +138,11 @@ def api(path, params, cfg, retries=4):
                 j = r.json()
 
                 if j.get("retCode") == 0:
-                    if base != BASES[0]:
-                        BASES.remove(base)
-                        BASES.insert(0, base)
-                        print(f"PUBLIC API active endpoint: {base}")
+                    with _bases_lock:
+                        if base in BASES and base != BASES[0]:
+                            BASES.remove(base)
+                            BASES.insert(0, base)
+                            print(f"PUBLIC API active endpoint: {base}")
                     return j
 
                 err = RuntimeError(
@@ -1870,7 +1872,7 @@ def main():
         p24 = float(r.price24hPcnt) if pd.notna(r.price24hPcnt) else np.nan
         return i, str(r.symbol), scan_symbol(r.symbol, turnover, p24, cfg)
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(scan_one, item): item[0] for item in enumerate(symbols)}
         for future in as_completed(futures):
             i = futures[future]
