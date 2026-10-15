@@ -5,9 +5,12 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'latest/**'
-      - 'realtime-trigger.txt'
+    paths:
+      - '.github/workflows/bybit-scan.yml'
+      - 'bybit_htf_ltf_screener.py'
+      - 'run_structural_screener.py'
+      - 'relative_strength_rerank.py'
+      - 'requirements.txt'
   schedule:
     # 07:55 KST prewarm full-universe scan; 08:30 health-check/recovery; 08:50 briefing.
     # Last verified 706-symbol run took 32m27s; allow 55m rather than 20m.
