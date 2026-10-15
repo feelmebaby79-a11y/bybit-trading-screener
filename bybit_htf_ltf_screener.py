@@ -100,7 +100,7 @@ class Cfg:
 
     max_symbols: int = 100
 
-    sleep: float = 0.08
+    sleep: float = 0.0
 
     timeout: int = 20
 
@@ -1872,7 +1872,7 @@ def main():
         p24 = float(r.price24hPcnt) if pd.notna(r.price24hPcnt) else np.nan
         return i, str(r.symbol), scan_symbol(r.symbol, turnover, p24, cfg)
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=12) as pool:
         futures = {pool.submit(scan_one, item): item[0] for item in enumerate(symbols)}
         for future in as_completed(futures):
             i = futures[future]
