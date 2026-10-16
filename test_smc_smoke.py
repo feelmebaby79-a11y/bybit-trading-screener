@@ -58,5 +58,5 @@ gap = pd.DataFrame([
     {"open": 12, "high": 13, "low": 11.5, "close": 12},
 ])
 assert scope["strict_fvg"](gap)[0] is None
-assert scope["strict_fvg"](gap.iloc[:3])[0] == "bullish"
+assert scope["strict_fvg"](gap.iloc[:3])[0] is None  # LuxAlgo auto threshold filters insufficient history
 print("SMC smoke tests passed")
