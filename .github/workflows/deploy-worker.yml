@@ -117,7 +117,7 @@ jobs:
               assert payload.get("ok") is True, payload
               if payload.get("error_count"):
                   from collections import Counter
-                  print("SHARD_ERRORS",shard,dict(Counter(str(x.get("error")) for x in payload.get("items",[]) if x.get("error"))),flush=True)
+                  print("SHARD_ERRORS",shard,[(x.get("symbol"),x.get("error")) for x in payload.get("items",[]) if x.get("error")], "items",payload.get("item_count"),"arrivals",len(payload.get("arrivals",[])),flush=True)
                   raise AssertionError((shard,payload.get("error_count")))
               for item in payload.get("arrivals",[]):
                   parts=item.get("score_breakdown")
