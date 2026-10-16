@@ -7,6 +7,7 @@ const GITHUB_OWNER="feelmebaby79-a11y",GITHUB_REPO="bybit-trading-screener",GITH
 const STATE_TTL_SECONDS=60*60*24*7;
 const SHARD_COUNT=3;
 const MIN_POI_ALERT_SCORE=70;
+// One-shot deploy verification: Telegram transport smoke test is triggered by commit marker.
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json;charset=UTF-8","cache-control":"no-store","access-control-allow-origin":"*"}})}
 function nullableNumber(v){if(v===null||v===undefined||v==="")return null;const n=Number(v);return Number.isFinite(n)?n:null}
