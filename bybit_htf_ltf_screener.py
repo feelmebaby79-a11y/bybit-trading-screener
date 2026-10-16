@@ -691,20 +691,25 @@ def location(d, eq_band=0.10, reference_price=None):
 # =========================================================
 
 def strict_fvg(d):
-    """Fresh three-candle imbalance on the latest closed bar only."""
-    if len(d) < 3:
-        return None, np.nan, np.nan
-    first, middle, last = d.iloc[-3], d.iloc[-2], d.iloc[-1]
-    if last.low > first.high and middle.close > first.high:
-        return "bullish", float(first.high), float(last.low)
-    if last.high < first.low and middle.close < first.low:
-        return "bearish", float(last.high), float(first.low)
-    return None, np.nan, np.nan
+    """LuxAlgo FVG: middle candle direction/auto-threshold, gap and wick mitigation."""
+    if len(d)<3:
+        return None,np.nan,np.nan
+    active=[]
+    total=0.0
+    for i in range(2,len(d)):
+        first,middle,last=d.iloc[i-2],d.iloc[i-1],d.iloc[i]
+        delta=(float(middle.close)-float(middle.open))/(float(middle.open)*100) if middle.open else 0.0
+        total+=abs(delta)
+        threshold=2*total/max(i,1)
+        active=[g for g in active if not ((g[0]=="bullish" and last.low<g[1]) or (g[0]=="bearish" and last.high>g[2]))]
+        if last.low>first.high and middle.close>first.high and delta>threshold:
+            active.insert(0,("bullish",float(first.high),float(last.low)))
+        elif last.high<first.low and middle.close<first.low and -delta>threshold:
+            active.insert(0,("bearish",float(last.high),float(first.low)))
+    return active[0] if active else (None,np.nan,np.nan)
 
 # =========================================================
-
 # Liquidity Sweep
-
 # =========================================================
 
 def sweep(d, side, n=25):
@@ -892,16 +897,45 @@ def smc_equal_levels(d, length=SMC_SWING_LENGTH, threshold=0.1):
     return result.get("high"), result.get("low")
 
 def smc_order_block(d, length=SMC_SWING_LENGTH):
-    """Most recent pre-break opposing candle; return its high/low as an OB candidate."""
-    _, events, _, _ = smc_structure(d, length)
+    """LuxAlgo swing OB: extreme parsed candle between confirmed pivot and break,
+    with ATR200 volatility filtering and wick-based invalidation."""
+    pivots=smc_pivots(d,length)
+    _,events,_,_=smc_structure(d,length)
     if not events:
-        return None, np.nan, np.nan
-    event_i, side, _, _ = events[-1]
-    for i in range(event_i - 1, max(-1, event_i - 21), -1):
-        bar = d.iloc[i]
-        if (side == "bullish" and bar.close < bar.open) or (side == "bearish" and bar.close > bar.open):
-            return side, float(bar.high), float(bar.low)
-    return None, np.nan, np.nan
+        return None,np.nan,np.nan
+    highs=d.high.to_numpy(dtype=float)
+    lows=d.low.to_numpy(dtype=float)
+    closes=d.close.to_numpy(dtype=float)
+    opens=d.open.to_numpy(dtype=float)
+    previous=np.r_[opens[0],closes[:-1]]
+    tr=np.maximum(highs-lows,np.maximum(np.abs(highs-previous),np.abs(lows-previous)))
+    atr=np.full(len(d),np.nan)
+    for j in range(199,len(d)):
+        atr[j]=np.mean(tr[j-199:j+1])
+    volatile=(highs-lows)>=2*atr
+    parsed_high=np.where(volatile,lows,highs)
+    parsed_low=np.where(volatile,highs,lows)
+    blocks=[]
+    for i in range(len(d)):
+        blocks=[x for x in blocks if not ((x[0]=="bullish" and lows[i]<x[1]) or (x[0]=="bearish" and highs[i]>x[2]))]
+        for event_i,side,_,level in events:
+            if event_i!=i:
+                continue
+            kind="high" if side=="bullish" else "low"
+            matches=[p for p in pivots if p[1]==kind and p[3]<=i and p[2]==level]
+            if not matches:
+                continue
+            start=matches[-1][0]
+            if start>=i:
+                continue
+            j=start+int(np.argmax(parsed_high[start:i])) if side=="bearish" else start+int(np.argmin(parsed_low[start:i]))
+            top=float(max(parsed_high[j],parsed_low[j]))
+            bottom=float(min(parsed_high[j],parsed_low[j]))
+            blocks.insert(0,(side,bottom,top))
+    if not blocks:
+        return None,np.nan,np.nan
+    side,bottom,top=blocks[0]
+    return side,top,bottom
 
 def smc_snapshot(d, reference_price=None):
     """Single SMC snapshot shared by ranking and per-symbol reporting."""
