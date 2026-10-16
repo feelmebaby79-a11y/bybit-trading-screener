@@ -37,7 +37,7 @@ function liveEntryScore(item,candles5m,entry){
  const direction=item.direction==="LONG"?1:-1;
  const fvg=!!(candles5m.length>=3&&(direction===1?c.low>candles5m.at(-3).high:c.high<candles5m.at(-3).low));
  const trigger=entry?.trigger||{};
- const rr=Number(trigger.live_rr??entry?.diagnostics?.m5?.live_rr??NaN);
+ const rrRaw=trigger.live_rr??entry?.diagnostics?.m5?.live_rr;const rr=rrRaw==null?NaN:Number(rrRaw);
  parts["5M_FVG_OB_RETRACE"]=(fvg?5:0)+(entry?.ready?10:0);
  if(Number.isFinite(rr))parts.RR=rr>=2?10:rr>=1.5?8:rr>=1?4:0;
  const score=Math.max(0,Math.min(100,Object.values(parts).reduce((sum,v)=>sum+(Number(v)||0),0)));
