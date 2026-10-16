@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "version": 25,
+  "version": 27,
   "updated_at": "2026-10-16T04:00:52.860982+00:00",
   "scan_fresh_only": true,
   "policy": {
@@ -25,7 +25,11 @@
     "reversal_early_no_forced_pick": true,
     "reversal_early_model": "COUNTERTREND_REVERSAL_V1",
     "no_retrace_no_trade": true,
-    "minimum_rr": 1.5
+    "minimum_rr": 1.5,
+    "poi_source": "CANONICAL_SMC_SWING_50_SCAN_ONLY",
+    "poi_alert_minimum_score": 70,
+    "no_independent_worker_fvg": true,
+    "entry_requires_5m_trigger": true
   },
   "items": [
     {
@@ -39,7 +43,10 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": null,
+      "poi_source": null
     },
     {
       "symbol": "ETHUSDT",
@@ -52,7 +59,10 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": null,
+      "poi_source": null
     },
     {
       "symbol": "XRPUSDT",
@@ -65,7 +75,10 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": null,
+      "poi_source": null
     },
     {
       "symbol": "SOLUSDT",
@@ -78,7 +91,10 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": null,
+      "poi_source": null
     },
     {
       "symbol": "BNBUSDT",
@@ -91,7 +107,10 @@
       "status": "ACTIVE",
       "bucket": "DEFAULT",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": null,
+      "poi_source": null
     },
     {
       "symbol": "ETHUSDT",
@@ -104,7 +123,10 @@
       "status": "ACTIVE",
       "bucket": "CURRENT_POSITION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": null,
+      "poi_source": null
     },
     {
       "symbol": "BEAMUSDT",
@@ -120,12 +142,15 @@
         "RR": 10,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.0026361,
+      "poi_high": 0.002705,
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": "1H",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "CKBUSDT",
@@ -141,12 +166,15 @@
         "RR": 10,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.0013371,
+      "poi_high": 0.0013471,
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": "1H",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "AIOZUSDT",
@@ -162,29 +190,32 @@
         "RR": 10,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.11391,
+      "poi_high": 0.11485,
       "status": "ACTIVE",
       "bucket": "DAILY_RECOMMENDATION",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": "1H",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "METISUSDT",
       "direction": "LONG",
-      "score": 55.0,
+      "score": 55,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 25,
         "1H_STRUCTURE_LOCATION": 8,
         "15M_ICT": 10,
         "5M_FVG_OB_RETRACE": 5,
-        "ENTRY_LOCATION_CHASE": 2.0,
+        "ENTRY_LOCATION_CHASE": 2,
         "RR": 0,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 3.612,
+      "poi_high": 3.642,
       "status": "ACTIVE",
       "bucket": "SMC_RANKING_WATCH",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
@@ -192,24 +223,27 @@
       "scan_rank": 1,
       "entry_model_ready_at_scan": false,
       "alert_only_when_entry_ready": true,
-      "scan_grade": "B+"
+      "scan_grade": "B+",
+      "smc_swing_length": 50,
+      "poi_tf": "15m",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "PYTHUSDT",
       "direction": "LONG",
-      "score": 55.0,
+      "score": 55,
       "score_scale": 100,
       "score_breakdown": {
         "HTF": 25,
         "1H_STRUCTURE_LOCATION": 8,
         "15M_ICT": 10,
         "5M_FVG_OB_RETRACE": 5,
-        "ENTRY_LOCATION_CHASE": 2.0,
+        "ENTRY_LOCATION_CHASE": 2,
         "RR": 0,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.08614,
+      "poi_high": 0.08739,
       "status": "ACTIVE",
       "bucket": "SMC_RANKING_WATCH",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
@@ -217,7 +251,10 @@
       "scan_rank": 2,
       "entry_model_ready_at_scan": false,
       "alert_only_when_entry_ready": true,
-      "scan_grade": "B+"
+      "scan_grade": "B+",
+      "smc_swing_length": 50,
+      "poi_tf": "15m",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "BEAMUSDT",
@@ -233,8 +270,8 @@
         "RR": 10,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.0026361,
+      "poi_high": 0.002705,
       "status": "ACTIVE",
       "bucket": "SMC_RANKING_WATCH",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
@@ -242,7 +279,10 @@
       "scan_rank": 3,
       "entry_model_ready_at_scan": false,
       "alert_only_when_entry_ready": true,
-      "scan_grade": "B+"
+      "scan_grade": "B+",
+      "smc_swing_length": 50,
+      "poi_tf": "1H",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "1000XECUSDT",
@@ -258,8 +298,8 @@
         "RR": 4,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.006851,
+      "poi_high": 0.006873,
       "status": "ACTIVE",
       "bucket": "SMC_RANKING_WATCH",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
@@ -267,7 +307,10 @@
       "scan_rank": 1,
       "entry_model_ready_at_scan": false,
       "alert_only_when_entry_ready": true,
-      "scan_grade": "B+"
+      "scan_grade": "B+",
+      "smc_swing_length": 50,
+      "poi_tf": "15m",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "BREVUSDT",
@@ -283,8 +326,8 @@
         "RR": 0,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.08309,
+      "poi_high": 0.08376,
       "status": "ACTIVE",
       "bucket": "SMC_RANKING_WATCH",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
@@ -292,7 +335,10 @@
       "scan_rank": 2,
       "entry_model_ready_at_scan": false,
       "alert_only_when_entry_ready": true,
-      "scan_grade": "B+"
+      "scan_grade": "B+",
+      "smc_swing_length": 50,
+      "poi_tf": "15m",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "YBUSDT",
@@ -308,8 +354,8 @@
         "RR": 0,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 0.07608,
+      "poi_high": 0.07673,
       "status": "ACTIVE",
       "bucket": "SMC_RANKING_WATCH",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
@@ -317,7 +363,10 @@
       "scan_rank": 3,
       "entry_model_ready_at_scan": false,
       "alert_only_when_entry_ready": true,
-      "scan_grade": "B+"
+      "scan_grade": "B+",
+      "smc_swing_length": 50,
+      "poi_tf": "15m",
+      "poi_source": "SMC50_OB"
     },
     {
       "symbol": "TAOUSDT",
@@ -333,12 +382,15 @@
         "RR": 0,
         "BTC_MARKET_ENV": 5
       },
-      "poi_low": null,
-      "poi_high": null,
+      "poi_low": 280.38,
+      "poi_high": 285.03,
       "status": "ACTIVE",
       "bucket": "EARLY_MOMENTUM",
       "trigger_model": "1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5",
-      "updated_at": "2026-10-16T04:00:52.860982+00:00"
+      "updated_at": "2026-10-16T04:00:52.860982+00:00",
+      "smc_swing_length": 50,
+      "poi_tf": "15m",
+      "poi_source": "SMC50_OB"
     }
   ]
 }
