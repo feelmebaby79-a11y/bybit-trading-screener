@@ -221,9 +221,9 @@ jobs:
               q["_parts"]=long_parts if side=="LONG" else short_parts
               add(sym,"UNIVERSE_SMC_POI",q)
           for s in defaults:
-              if s not in {x["symbol"] for x in items}:add(s,"DEFAULT")
+              if s not in {x["symbol"] for x in items} and s in bysym:add(s,"DEFAULT")
           for s in positions:
-              if s not in {x["symbol"] for x in items}:add(s,"CURRENT_POSITION")
+              if s not in {x["symbol"] for x in items} and s in bysym:add(s,"CURRENT_POSITION")
           eligible=[]
           for r in rows:
               if str(r.get("symbol","")).upper() in positions: continue
