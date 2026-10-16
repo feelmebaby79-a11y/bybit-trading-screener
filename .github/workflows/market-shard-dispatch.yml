@@ -22,7 +22,7 @@ jobs:
           base="https://bybit-trading-screener.feelmebaby79.workers.dev"
           key=os.environ["WORKER_ACCESS_KEY"]
           def run(shard):
-              req=urllib.request.Request(f"{base}/run-shard?shards=96&shard={shard}",data=b"{}",method="POST",headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+              req=urllib.request.Request(f"{base}/run-shard?shards=96&shard={shard}",data=b"{}",method="POST",headers={"Authorization":"Bearer "+key,"Content-Type":"application/json","User-Agent":"bybit-worker-deploy-smoke-test"})
               try:
                   with urllib.request.urlopen(req,timeout=95) as r: return shard,json.load(r)
               except urllib.error.HTTPError as e: return shard,{"ok":False,"error":str(e),"body":e.read(300).decode("utf-8","replace"),"server":e.headers.get("server")}
