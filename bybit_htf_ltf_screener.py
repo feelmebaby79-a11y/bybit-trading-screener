@@ -687,58 +687,15 @@ def location(d, eq_band=0.10, reference_price=None):
 # =========================================================
 
 def strict_fvg(d):
-
-    for i in range(
-
-        len(d) - 1,
-
-        1,
-
-        -1,
-
-    ):
-
-        candle1 = d.iloc[i - 2]
-
-        candle3 = d.iloc[i]
-
-        # bullish FVG
-
-        if candle3.low > candle1.high:
-
-            return (
-
-                "bullish",
-
-                float(candle1.high),
-
-                float(candle3.low),
-
-            )
-
-        # bearish FVG
-
-        if candle3.high < candle1.low:
-
-            return (
-
-                "bearish",
-
-                float(candle3.high),
-
-                float(candle1.low),
-
-            )
-
-    return (
-
-        None,
-
-        np.nan,
-
-        np.nan,
-
-    )
+    """Fresh three-candle imbalance on the latest closed bar only."""
+    if len(d) < 3:
+        return None, np.nan, np.nan
+    first, middle, last = d.iloc[-3], d.iloc[-2], d.iloc[-1]
+    if last.low > first.high and middle.close > first.high:
+        return "bullish", float(first.high), float(last.low)
+    if last.high < first.low and middle.close < first.low:
+        return "bearish", float(last.high), float(first.low)
+    return None, np.nan, np.nan
 
 # =========================================================
 
@@ -899,149 +856,22 @@ def trigger(d, side):
 # =========================================================
 
 def rr_hint(d, side):
-
-    x = swings(d)
-
-    hs, ls = recent(
-
-        x,
-
-        3,
-
-    )
-
-    entry = float(
-
-        x.close.iloc[-1]
-
-    )
-
+    """Risk/reward anchored to confirmed SMC swing levels, not 2-bar fractals."""
+    _, _, high, low = smc_structure(d, SMC_SWING_LENGTH)
+    entry = float(d.close.iloc[-1])
     if side == "LONG":
-
-        stop = (
-
-            ls[-1]
-
-            if ls
-
-            else
-
-            float(
-
-                x.low.tail(20).min()
-
-            )
-
-        )
-
-        target = (
-
-            hs[-1]
-
-            if (
-
-                hs
-
-                and
-
-                hs[-1] > entry
-
-            )
-
-            else
-
-            float(
-
-                x.high.tail(80).max()
-
-            )
-
-        )
-
-        risk = entry - stop
-
-        reward = target - entry
-
+        stop = float(low) if low is not None and low < entry else np.nan
+        target = float(high) if high is not None and high > entry else np.nan
     else:
-
-        stop = (
-
-            hs[-1]
-
-            if hs
-
-            else
-
-            float(
-
-                x.high.tail(20).max()
-
-            )
-
-        )
-
-        target = (
-
-            ls[-1]
-
-            if (
-
-                ls
-
-                and
-
-                ls[-1] < entry
-
-            )
-
-            else
-
-            float(
-
-                x.low.tail(80).min()
-
-            )
-
-        )
-
-        risk = stop - entry
-
-        reward = entry - target
-
-    rr = (
-
-        reward / risk
-
-        if (
-
-            risk > 0
-
-            and
-
-            reward > 0
-
-        )
-
-        else np.nan
-
-    )
-
-    return (
-
-        entry,
-
-        stop,
-
-        target,
-
-        rr,
-
-    )
+        stop = float(high) if high is not None and high > entry else np.nan
+        target = float(low) if low is not None and low < entry else np.nan
+    risk = (entry - stop) if side == "LONG" else (stop - entry)
+    reward = (target - entry) if side == "LONG" else (entry - target)
+    rr = reward / risk if np.isfinite(risk) and np.isfinite(reward) and risk > 0 and reward > 0 else np.nan
+    return entry, stop, target, rr
 
 # =========================================================
-
 # Feature extraction
-
 # =========================================================
 
 def feat(d, reference_price=None):
