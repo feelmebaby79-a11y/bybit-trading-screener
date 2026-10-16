@@ -4,107 +4,24 @@ from pathlib import Path
 
 SOURCE = Path(__file__).with_name("bybit_htf_ltf_screener.py")
 code = SOURCE.read_text(encoding="utf-8")
+# The base scanner owns LuxAlgo-style SMC structure logic.
+# Preserve its implementation; only enrich its output with metadata.
 start = code.index("def structure(d):")
-end_marker = "# =========================================================\n\n# Premium / Discount"
-end = code.index(end_marker, start)
-
-replacement = r'''def structure(d):
-    x = swings(d)
-    hs, ls = recent(x, 3)
-    last_h = hs[-1] if hs else np.nan
-    last_l = ls[-1] if ls else np.nan
-
-    meta = {
-        "protected_low": np.nan,
-        "protected_high": np.nan,
-        "last_bos_side": None,
-        "last_bos_level": np.nan,
-        "last_choch_side": None,
-        "last_choch_level": np.nan,
+end = code.index("# =========================================================\n# LuxAlgo trailing swing Premium / Discount zones", start)
+replacement = '''def structure(d):
+    bias, events, high, low = smc_structure(d, SMC_SWING_LENGTH)
+    trend = "bullish" if bias == 1 else "bearish" if bias == -1 else "range"
+    bos = next((e for e in reversed(events) if e[2] == "BOS"), None)
+    choch = next((e for e in reversed(events) if e[2] == "CHoCH"), None)
+    d.attrs["structure_meta"] = {
+        "protected_low": low if low is not None else np.nan,
+        "protected_high": high if high is not None else np.nan,
+        "last_bos_side": bos[1] if bos else None,
+        "last_bos_level": bos[3] if bos else np.nan,
+        "last_choch_side": choch[1] if choch else None,
+        "last_choch_level": choch[3] if choch else np.nan,
     }
-    if len(x) < 5:
-        d.attrs["structure_meta"] = meta
-        return "range", 0, last_h, last_l
-
-    confirm_highs, confirm_lows = {}, {}
-    for idx in x.index[x.swing_high]:
-        ci = int(idx) + 2
-        if ci < len(x):
-            confirm_highs.setdefault(ci, []).append((int(idx), float(x.high.iloc[idx])))
-    for idx in x.index[x.swing_low]:
-        ci = int(idx) + 2
-        if ci < len(x):
-            confirm_lows.setdefault(ci, []).append((int(idx), float(x.low.iloc[idx])))
-
-    trend = "range"
-    last_high = last_low = None
-    protected_low = protected_high = np.nan
-    broken_highs, broken_lows = set(), set()
-    last_bos_side, last_bos_level = None, np.nan
-    last_choch_side, last_choch_level = None, np.nan
-
-    for i in range(len(x)):
-        for pivot in confirm_highs.get(i, []): last_high = pivot
-        for pivot in confirm_lows.get(i, []): last_low = pivot
-        c = float(x.close.iloc[i])
-
-        if trend == "bullish":
-            if np.isfinite(protected_low) and c < protected_low:
-                last_choch_side, last_choch_level = "bearish", float(protected_low)
-                trend = "bearish"
-                protected_high = last_high[1] if last_high is not None else np.nan
-                if last_low is not None: broken_lows.add(last_low[0])
-                continue
-            if last_high is not None and last_high[0] not in broken_highs and c > last_high[1]:
-                broken_highs.add(last_high[0])
-                last_bos_side, last_bos_level = "bullish", float(last_high[1])
-                if last_low is not None: protected_low = last_low[1]
-            continue
-
-        if trend == "bearish":
-            if np.isfinite(protected_high) and c > protected_high:
-                last_choch_side, last_choch_level = "bullish", float(protected_high)
-                trend = "bullish"
-                protected_low = last_low[1] if last_low is not None else np.nan
-                if last_high is not None: broken_highs.add(last_high[0])
-                continue
-            if last_low is not None and last_low[0] not in broken_lows and c < last_low[1]:
-                broken_lows.add(last_low[0])
-                last_bos_side, last_bos_level = "bearish", float(last_low[1])
-                if last_high is not None: protected_high = last_high[1]
-            continue
-
-        bullish_break = last_high is not None and last_high[0] not in broken_highs and c > last_high[1]
-        bearish_break = last_low is not None and last_low[0] not in broken_lows and c < last_low[1]
-        if bullish_break:
-            trend = "bullish"
-            broken_highs.add(last_high[0])
-            last_bos_side, last_bos_level = "bullish", float(last_high[1])
-            protected_low = last_low[1] if last_low is not None else np.nan
-        elif bearish_break:
-            trend = "bearish"
-            broken_lows.add(last_low[0])
-            last_bos_side, last_bos_level = "bearish", float(last_low[1])
-            protected_high = last_high[1] if last_high is not None else np.nan
-
-    sc = 0
-    if trend == "bullish":
-        sc = 2
-        if hs and float(x.close.iloc[-1]) > hs[-1]: sc += 1
-    elif trend == "bearish":
-        sc = -2
-        if ls and float(x.close.iloc[-1]) < ls[-1]: sc -= 1
-
-    meta = {
-        "protected_low": float(protected_low) if np.isfinite(protected_low) else np.nan,
-        "protected_high": float(protected_high) if np.isfinite(protected_high) else np.nan,
-        "last_bos_side": last_bos_side,
-        "last_bos_level": float(last_bos_level) if np.isfinite(last_bos_level) else np.nan,
-        "last_choch_side": last_choch_side,
-        "last_choch_level": float(last_choch_level) if np.isfinite(last_choch_level) else np.nan,
-    }
-    d.attrs["structure_meta"] = meta
-    return trend, sc, last_h, last_l
+    return trend, bias * 2, high if high is not None else np.nan, low if low is not None else np.nan
 
 '''
 patched = code[:start] + replacement + code[end:]
