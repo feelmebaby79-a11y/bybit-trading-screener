@@ -604,7 +604,7 @@ SMC_SWING_LENGTH = 50
 SMC_INTERNAL_LENGTH = 5
 
 def smc_pivots(d, length=SMC_SWING_LENGTH):
-    """Port of LuxAlgo's leg(size) logic; do not use symmetric fractals."""
+    """Confirmed LuxAlgo-style alternating swing legs, without lookahead."""
     highs = d.high.to_numpy(dtype=float)
     lows = d.low.to_numpy(dtype=float)
     state = 0
@@ -621,13 +621,14 @@ def smc_pivots(d, length=SMC_SWING_LENGTH):
     return pivots
 
 def smc_structure(d, length=SMC_SWING_LENGTH):
-    """Confirmed-pivot close-cross BOS/CHoCH with one crossing per pivot."""
+    """Confirmed swing events: each pivot can break only once."""
     pivots = smc_pivots(d, length)
     events = []
     high = low = None
     high_crossed = low_crossed = False
     bias = 0
     cursor = 0
+    closes = d.close.to_numpy(dtype=float)
     for i in range(len(d)):
         while cursor < len(pivots) and pivots[cursor][3] <= i:
             _, kind, level, _ = pivots[cursor]
@@ -638,7 +639,7 @@ def smc_structure(d, length=SMC_SWING_LENGTH):
             cursor += 1
         if i == 0:
             continue
-        prev, close = float(d.close.iloc[i-1]), float(d.close.iloc[i])
+        prev, close = closes[i-1], closes[i]
         if high is not None and not high_crossed and prev <= high < close:
             event = "CHoCH" if bias == -1 else "BOS"
             events.append((i, "bullish", event, high))
