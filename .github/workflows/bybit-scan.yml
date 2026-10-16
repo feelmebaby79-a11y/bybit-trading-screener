@@ -204,6 +204,19 @@ jobs:
               sym=sym.upper(); r=r or bysym.get(sym,{}); side=r.get("_side","LONG"); key=(sym,bucket)
               if key in seen:return
               seen.add(key); pl,ph,pt,ps=smc_poi(r,side); items.append({"symbol":sym,"direction":side,"score":r.get("_score100"),"score_scale":100,"score_breakdown":r.get("_parts"),"poi_low":pl,"poi_high":ph,"poi_tf":pt,"poi_source":ps,"smc_swing_length":50,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","updated_at":generated})
+          # Full-universe SMC50 POI monitoring, independent of recommendation ranking.
+          # Prefer the stronger canonical LONG/SHORT score for each symbol.
+          for raw in full:
+              sym=str(raw.get("symbol") or "").upper()
+              if not sym: continue
+              long_score,long_parts=canonical(raw,"LONG")
+              short_score,short_parts=canonical(raw,"SHORT")
+              side="LONG" if long_score>=short_score else "SHORT"
+              q=dict(raw)
+              q["_side"]=side
+              q["_score100"]=long_score if side=="LONG" else short_score
+              q["_parts"]=long_parts if side=="LONG" else short_parts
+              add(sym,"UNIVERSE_SMC_POI",q)
           for s in defaults:add(s,"DEFAULT")
           for s in positions:add(s,"CURRENT_POSITION")
           eligible=[]
@@ -269,7 +282,7 @@ jobs:
               items[-1]["reversal_early_score"]=r["_reversal_score"]
               items[-1]["reversal_early_score_scale"]=100
               items[-1]["reversal_early_reasons"]=r["_reversal_reasons"]
-          wl={"ok":True,"version":25,"updated_at":generated,"scan_fresh_only":True,"policy":{"mode":"CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM_REVERSAL_EARLY","position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,"position_symbols":positions,"position_fetched_at":pf,"score_scale":100,"score_formula":"HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5","daily_recommendation_count":len(recs),"smc_ranking_watch_count":len(ranking_watch),"smc_ranking_alert_requires_entry_ready":True,"early_momentum_count":len(early),"early_momentum_max":3,"early_momentum_no_forced_pick":True,"reversal_early_count":len(reversal),"reversal_early_max":3,"reversal_early_minimum_score":65,"reversal_early_no_forced_pick":True,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","no_retrace_no_trade":True,"minimum_rr":1.5},"items":items}
+          wl={"ok":True,"version":25,"updated_at":generated,"scan_fresh_only":True,"policy":{"mode":"CANONICAL_100_CORE_LIVE_POSITIONS_CURRENT_SCAN_EARLY_MOMENTUM_REVERSAL_EARLY","position_source":"Bybit Private Position API via Worker","position_fetch_ok":True,"position_symbols":positions,"position_fetched_at":pf,"score_scale":100,"score_formula":"HTF25+1H15+15mICT20+5m15+entry10+RR10+BTCenv5","daily_recommendation_count":len(recs),"universe_smc_poi_count":sum(i["bucket"]=="UNIVERSE_SMC_POI" for i in items),"smc_ranking_watch_count":len(ranking_watch),"smc_ranking_alert_requires_entry_ready":True,"early_momentum_count":len(early),"early_momentum_max":3,"early_momentum_no_forced_pick":True,"reversal_early_count":len(reversal),"reversal_early_max":3,"reversal_early_minimum_score":65,"reversal_early_no_forced_pick":True,"reversal_early_model":"COUNTERTREND_REVERSAL_V1","no_retrace_no_trade":True,"minimum_rr":1.5},"items":items}
           with open("latest/watchlist.json","w",encoding="utf-8") as f:json.dump(wl,f,ensure_ascii=False,indent=2)
           print("WATCHLIST100",generated,"positions",positions,"daily",[(x["symbol"],x["_side"],x["_score100"]) for x in recs],"early",[(x["symbol"],x["_side"],x["_score100"]) for x in early],"reversal",[(x["symbol"],x["_side"],x["_reversal_score"]) for x in reversal])
           PY
