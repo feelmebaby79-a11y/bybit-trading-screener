@@ -31,6 +31,10 @@ async function evalEntryShard(env,shard,shards){const p=await fetchWatchlist(),a
 
 // Live score recomputation from fresh CLOSED 5m candles. Static HTF fields remain
 // explicitly labeled as scan-time values until their timeframes are refreshed.
+function trendFromCandles(cs){if(cs.length<52)return null;const c=cs.at(-1),prior=cs.slice(-51,-1);const hi=Math.max(...prior.map(x=>x.high)),lo=Math.min(...prior.map(x=>x.low));return c.close>hi?"bullish":c.close<lo?"bearish":c.close>cs.at(-2).close?"bullish":"bearish"}
+function locationFromCandles(cs){const w=cs.slice(-50);if(w.length<3)return"neutral";const hi=Math.max(...w.map(x=>x.high)),lo=Math.min(...w.map(x=>x.low));const p=(cs.at(-1).close-lo)/Math.max(hi-lo,1e-12);return p<=.05?"discount":p>=.95?"premium":p>=.475&&p<=.525?"equilibrium":"neutral"}
+function sweepFromCandles(cs,side){if(cs.length<27)return false;const p=cs.slice(-26,-1),c=cs.at(-1);const x=side==="LONG"?Math.min(...p.map(y=>y.low)):Math.max(...p.map(y=>y.high));return side==="LONG"?c.low<x&&c.close>x:c.high>x&&c.close<x}
+function mssFromCandles(cs,side){if(cs.length<52)return false;const p=cs.slice(-51,-1),c=cs.at(-1);return side==="LONG"?c.close>Math.max(...p.map(y=>y.high)):c.close<Math.min(...p.map(y=>y.low))}
 function liveEntryScore(item,candles5m,entry){
  const parts={...(item.score_breakdown||{})};
  const c=candles5m.at(-1),prev=candles5m.at(-2);
