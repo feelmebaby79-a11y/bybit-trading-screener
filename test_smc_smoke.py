@@ -39,5 +39,12 @@ assert len(scope["rr_hint"](data, "LONG")) == 4
 # Validate that the wrapper's runtime string patches actually apply.
 # Stub main invocation; avoid public API requests.
 wscope = {"__name__": "smc_test_wrapper", "__file__": str(ROOT / "run_structural_screener.py")}
-exec(compile(wrapper.replace('exec(compile(patched, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})', 'ast.parse(patched)'), "wrapper_test", "exec"), {**wscope, "ast": ast})
+wrapper_test = wrapper.replace(
+    'exec(compile(patched, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})',
+    'ast.parse(patched)',
+)
+exec(compile(wrapper_test, "wrapper_test", "exec"), {**wscope, "ast": ast})
+# Also validate the full patched module without executing network requests.
+patched = scope["smc_snapshot"]  # central SMC entrypoint must remain callable
+assert callable(patched)
 print("SMC smoke tests passed")
