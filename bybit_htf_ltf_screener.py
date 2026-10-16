@@ -871,101 +871,25 @@ def displacement(
 # =========================================================
 
 def trigger(d, side):
+    """Use LuxAlgo-style internal close-cross events for MSS/CHoCH signals.
 
-    x = swings(d)
-
-    hs, ls = recent(
-
-        x,
-
-        2,
-
-    )
-
-    c = float(
-
-        x.close.iloc[-1]
-
-    )
-
-    sw = sweep(
-
-        x,
-
-        side,
-
-    )
-
-    disp = displacement(
-
-        x,
-
-        side,
-
-    )
-
-    ft, fl, fh = strict_fvg(x)
-
-    if side == "LONG":
-
-        mss = (
-
-            c > hs[-1]
-
-            if hs
-
-            else False
-
-        )
-
-        fvg_ok = (
-
-            ft == "bullish"
-
-        )
-
-    else:
-
-        mss = (
-
-            c < ls[-1]
-
-            if ls
-
-            else False
-
-        )
-
-        fvg_ok = (
-
-            ft == "bearish"
-
-        )
-
-    score = (
-
-        2 * int(sw)
-
-        + 2 * int(mss)
-
-        + 2 * int(disp)
-
-        + int(fvg_ok)
-
-    )
-
+    Sweep and displacement are additional ICT entry filters, not LuxAlgo
+    SMC indicator outputs; keep them explicitly separate.
+    """
+    bias, events, _, _ = smc_structure(d, SMC_INTERNAL_LENGTH)
+    last = events[-1] if events else None
+    want = "bullish" if side == "LONG" else "bearish"
+    # A structure event is only actionable on the latest CLOSED candle.
+    mss = bool(last and last[0] == len(d) - 1 and last[1] == want)
+    sw = sweep(d, side)
+    disp = displacement(d, side)
+    ft, fl, fh = strict_fvg(d)
+    fvg_ok = ft == want
+    score = 2 * int(sw) + 2 * int(mss) + 2 * int(disp) + int(fvg_ok)
     return {
-
-        "sweep": sw,
-
-        "mss": mss,
-
-        "disp": disp,
-
-        "fvg": ft,
-
-        "score": score,
-
+        "sweep": sw, "mss": mss, "disp": disp,
+        "fvg": ft, "score": score,
+        "smc_internal_event": last[2] if mss else None,
     }
 
 # =========================================================
