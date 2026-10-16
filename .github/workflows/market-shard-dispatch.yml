@@ -1,0 +1,32 @@
+name: Market shard dispatch
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch 48 independent Worker requests
+        env:
+          WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
+        run: |
+          python - <<'PY'
+          import concurrent.futures,json,os,urllib.request,time
+          base="https://bybit-trading-screener.feelmebaby79.workers.dev"
+          key=os.environ["WORKER_ACCESS_KEY"]
+          def run(shard):
+              req=urllib.request.Request(f"{base}/run-shard?shards=48&shard={shard}",data=b"{}",method="POST",headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+              try:
+                  with urllib.request.urlopen(req,timeout=95) as r: return shard,json.load(r)
+              except Exception as e: return shard,{"ok":False,"error":str(e)}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+              results=dict(pool.map(run,range(48)))
+          failures={k:v for k,v in results.items() if not v.get("ok") or v.get("poi_errors") or v.get("entry_errors")}
+          print("shards",len(results),"failures",len(failures),"poi_arrivals",sum(v.get("poi_arrivals",0) for v in results.values()),"entry_candidates",sum(v.get("entry_candidates",0) for v in results.values()),flush=True)
+          for k,v in failures.items(): print("FAIL",k,json.dumps(v,ensure_ascii=False)[:1000],flush=True)
+          if failures: raise SystemExit(1)
+          PY
