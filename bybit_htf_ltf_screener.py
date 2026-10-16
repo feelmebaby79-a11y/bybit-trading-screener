@@ -875,45 +875,65 @@ def rr_hint(d, side):
 # Feature extraction
 # =========================================================
 
-def feat(d, reference_price=None):
+def smc_equal_levels(d, length=SMC_SWING_LENGTH, threshold=0.1):
+    """EQH/EQL from consecutive confirmed pivot pairs within ATR tolerance."""
+    pivots = smc_pivots(d, length)
+    a = atr(d).iloc[-1]
+    if not np.isfinite(a) or a <= 0:
+        return None, None
+    result = {}
+    for kind in ("high", "low"):
+        values = [level for _, k, level, _ in pivots if k == kind]
+        if len(values) >= 2 and abs(values[-1] - values[-2]) <= threshold * a:
+            result[kind] = (values[-1] + values[-2]) / 2
+    return result.get("high"), result.get("low")
 
-    tr, sc, _, _ = structure(d)
+def smc_order_block(d, length=SMC_SWING_LENGTH):
+    """Most recent pre-break opposing candle; return its high/low as an OB candidate."""
+    _, events, _, _ = smc_structure(d, length)
+    if not events:
+        return None, np.nan, np.nan
+    event_i, side, _, _ = events[-1]
+    for i in range(event_i - 1, max(-1, event_i - 21), -1):
+        bar = d.iloc[i]
+        if (side == "bullish" and bar.close < bar.open) or (side == "bearish" and bar.close > bar.open):
+            return side, float(bar.high), float(bar.low)
+    return None, np.nan, np.nan
 
+def smc_snapshot(d, reference_price=None):
+    """Single SMC snapshot shared by ranking and per-symbol reporting."""
+    bias, events, high, low = smc_structure(d, SMC_SWING_LENGTH)
+    ibias, ievents, _, _ = smc_structure(d, SMC_INTERNAL_LENGTH)
     zone, pos, hi, lo, eq = location(d, reference_price=reference_price)
-
-    rv = rsi(
-
-        d.close
-
-    ).iloc[-1]
-
+    eqh, eql = smc_equal_levels(d)
+    ob_side, ob_high, ob_low = smc_order_block(d)
+    fvg_side, fvg_low, fvg_high = strict_fvg(d)
+    last = events[-1] if events else None
+    internal = ievents[-1] if ievents else None
     return {
-
-        "trend": tr,
-
-        "score": sc,
-
-        "zone": zone,
-
-        "pos": pos,
-
-        "rsi": (
-
-            float(rv)
-
-            if np.isfinite(rv)
-
-            else np.nan
-
-        ),
-
-        "hi": hi,
-
-        "lo": lo,
-
-        "eq": eq,
-
+        "trend": "bullish" if bias == 1 else "bearish" if bias == -1 else "range",
+        "bias": bias, "swing_event": last[2] if last else None,
+        "swing_event_side": last[1] if last else None,
+        "swing_event_level": last[3] if last else np.nan,
+        "internal_event": internal[2] if internal else None,
+        "internal_event_side": internal[1] if internal else None,
+        "internal_bias": ibias,
+        "zone": zone, "pos": pos, "hi": hi, "lo": lo, "eq": eq,
+        "eqh": eqh if eqh is not None else np.nan,
+        "eql": eql if eql is not None else np.nan,
+        "ob_side": ob_side, "ob_high": ob_high, "ob_low": ob_low,
+        "fvg_side": fvg_side, "fvg_low": fvg_low, "fvg_high": fvg_high,
+        "strong_high": bool(bias == -1), "strong_low": bool(bias == 1),
     }
+
+def feat(d, reference_price=None):
+    smc = smc_snapshot(d, reference_price)
+    rv = rsi(d.close).iloc[-1]
+    smc.update({
+        "score": smc["bias"] * 2,
+        "rsi": float(rv) if np.isfinite(rv) else np.nan,
+    })
+    return smc
 
 # =========================================================
 
@@ -1184,6 +1204,16 @@ def scan_symbol(
         "4H_range_eq": F["4H"]["eq"],
 
         "15m_rsi": F["15m"]["rsi"],
+        **{
+            f"{tf}_smc_{key}": F[tf][key]
+            for tf in TFS
+            for key in (
+                "swing_event", "swing_event_side", "swing_event_level",
+                "internal_event", "internal_event_side", "internal_bias",
+                "eqh", "eql", "ob_side", "ob_high", "ob_low",
+                "fvg_side", "fvg_low", "fvg_high", "strong_high", "strong_low",
+            )
+        },
 
     }
 
