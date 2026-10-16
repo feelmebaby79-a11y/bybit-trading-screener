@@ -29,6 +29,11 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Check Worker JavaScript syntax
+        run: |
+          node --check worker_sharded.js
+          node --check entry_trigger.js
+
       - name: Validate deploy secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
