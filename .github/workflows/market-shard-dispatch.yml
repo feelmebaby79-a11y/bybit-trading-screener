@@ -1,5 +1,8 @@
 name: Market shard dispatch
 on:
+  push:
+    paths:
+      - '.github/workflows/market-shard-dispatch.yml'
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
