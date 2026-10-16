@@ -35,6 +35,19 @@ function trendFromCandles(cs){if(cs.length<52)return null;const c=cs.at(-1),prio
 function locationFromCandles(cs){const w=cs.slice(-50);if(w.length<3)return"neutral";const hi=Math.max(...w.map(x=>x.high)),lo=Math.min(...w.map(x=>x.low));const p=(cs.at(-1).close-lo)/Math.max(hi-lo,1e-12);return p<=.05?"discount":p>=.95?"premium":p>=.475&&p<=.525?"equilibrium":"neutral"}
 function sweepFromCandles(cs,side){if(cs.length<27)return false;const p=cs.slice(-26,-1),c=cs.at(-1);const x=side==="LONG"?Math.min(...p.map(y=>y.low)):Math.max(...p.map(y=>y.high));return side==="LONG"?c.low<x&&c.close>x:c.high>x&&c.close<x}
 function mssFromCandles(cs,side){if(cs.length<52)return false;const p=cs.slice(-51,-1),c=cs.at(-1);return side==="LONG"?c.close>Math.max(...p.map(y=>y.high)):c.close<Math.min(...p.map(y=>y.low))}
+async function liveTimeframeScore(item,m5,entry){
+ const tf=await Promise.all(["D","240","60","15","30"].map(i=>fetchCandles(item.symbol,i,200).then(closedOldestFirst)));
+ const [d,h4,h1,m15,m30]=tf;
+ const btc=await Promise.all(["30","60","240"].map(i=>fetchCandles("BTCUSDT",i,4).then(closedOldestFirst)));
+ const trend=item.direction==="LONG"?"bullish":"bearish",fav=item.direction==="LONG"?"discount":"premium",loc=locationFromCandles(h1);
+ const htf=(trendFromCandles(d)===trend?13:0)+(trendFromCandles(h4)===trend?12:0);
+ const oneh=(trendFromCandles(h1)===trend?8:0)+(loc===fav?7:loc==="equilibrium"?4:0);
+ const ict=(trendFromCandles(m15)===trend?5:0)+(sweepFromCandles(m15,item.direction)?5:0)+(mssFromCandles(m15,item.direction)?5:0)+(htfDisplacement(m15,m15.length-1,item.direction)?5:0);
+ const chase=Math.min(3,Math.max(0,Math.abs(m15.at(-1).close/m15.at(-2).close-1)*30));
+ const entryloc=(loc===fav?7:loc==="equilibrium"?4:0)+3-chase;
+ let good=0;for(let i=0;i<3;i++){const a=[m30,h1,h4][i],b=btc[i];if(a.length<2||b.length<2)continue;const delta=a.at(-1).close/a.at(-2).close-b.at(-1).close/b.at(-2).close;if(item.direction==="LONG"?delta>0:delta<0)good++}
+ return{HTF:htf,"1H_STRUCTURE_LOCATION":oneh,"15M_ICT":ict,"ENTRY_LOCATION_CHASE":entryloc,"BTC_MARKET_ENV":good>=2?5:good===1?2:0};
+}
 function liveEntryScore(item,candles5m,entry){
  const parts={...(item.score_breakdown||{})};
  const c=candles5m.at(-1),prev=candles5m.at(-2);
