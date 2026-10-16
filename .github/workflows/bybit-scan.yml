@@ -296,6 +296,26 @@ jobs:
           print("WATCHLIST100",generated,"positions",positions,"daily",[(x["symbol"],x["_side"],x["_score100"]) for x in recs],"early",[(x["symbol"],x["_side"],x["_score100"]) for x in early],"reversal",[(x["symbol"],x["_side"],x["_reversal_score"]) for x in reversal])
           PY
 
+      - name: Validate full-universe SMC50 watchlist
+        run: |
+          python - <<'PY'
+          import csv,json,math
+          with open("latest/scan_results.csv",encoding="utf-8-sig",newline="") as f: universe={r["symbol"].upper() for r in csv.DictReader(f) if r.get("symbol")}
+          w=json.load(open("latest/watchlist.json",encoding="utf-8"))
+          items=w["items"]; symbols={i["symbol"] for i in items}
+          assert len(universe)>=100,(len(universe),"scan universe too small")
+          assert universe<=symbols,("missing symbols",sorted(universe-symbols)[:20])
+          assert len(symbols)==len(items),("duplicate symbols",len(symbols),len(items))
+          for i in items:
+              assert i["smc_swing_length"]==50 and i["score_scale"]==100,i["symbol"]
+              assert isinstance(i["score"],(int,float)) and math.isfinite(i["score"]) and 0<=i["score"]<=100,(i["symbol"],i["score"])
+              assert sum(i["score_breakdown"].values())==i["score"],i["symbol"]
+              if i["poi_low"] is not None:
+                  assert 0<i["poi_low"]<i["poi_high"],i["symbol"]
+                  assert i["poi_tf"] in ("15m","1H") and i["poi_source"] in ("SMC50_OB","SMC50_FVG"),i["symbol"]
+          print("PASS SMC50 FULL UNIVERSE",len(universe),"WATCHED",len(items),"VALID POI",sum(i["poi_low"] is not None for i in items))
+          PY
+
       - name: Create Pages site
         run: |
           mkdir -p public/latest
