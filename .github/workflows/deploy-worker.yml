@@ -54,6 +54,7 @@ jobs:
           test -n "$WORKER_ACCESS_KEY" || (echo 'Missing WORKER_ACCESS_KEY' && exit 13)
 
       - name: Deploy Worker
+        id: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -81,6 +82,7 @@ jobs:
           fi
 
       - name: Verify deployed POI live scoring marker
+        id: marker
         run: |
           python - <<'PY'
           import json, time, urllib.request
@@ -102,6 +104,7 @@ jobs:
           PY
 
       - name: Verify live scoring API on production
+        id: score
         run: |
           python - <<'PY'
           import json, urllib.request
@@ -168,6 +171,7 @@ jobs:
           PY
 
       - name: Send one-shot Telegram transport test
+        id: telegram
         if: contains(github.event.head_commit.message, '[telegram-test]')
         env:
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
@@ -189,7 +193,8 @@ jobs:
           SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
           RESULT: ${{ job.status }}
+          FAILED_STAGE: deploy=${{ steps.deploy.outcome }},marker=${{ steps.marker.outcome }},score=${{ steps.score.outcome }},telegram=${{ steps.telegram.outcome }}
         run: |
-          if [ "$RESULT" = "success" ]; then STATE=success; DESC="Deployment and Telegram transport checks passed"; else STATE=failure; DESC="Production verification failed; inspect Actions logs"; fi
+          if [ "$RESULT" = "success" ]; then STATE=success; DESC="Deployment and Telegram transport checks passed"; else STATE=failure; DESC="Failed stage: $FAILED_STAGE"; fi
           printf '{"state":"%s","context":"production/live-poi-telegram","description":"%s"}' "$STATE" "$DESC" > /tmp/verification-status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/statuses/$SHA" --data-binary @/tmp/verification-status.json
