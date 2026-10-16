@@ -156,7 +156,7 @@ jobs:
           if not scan.get("ok") or not scan.get("position_fetch_ok"): raise SystemExit("REFUSE STALE WATCHLIST: private position fetch failed")
           generated=scan.get("generated_at"); pf=scan.get("position_fetched_at") or generated
           if not generated or not pf: raise SystemExit("REFUSE STALE WATCHLIST: freshness timestamp missing")
-          def b(v): return bool(v)
+          def b(v): return str(v).strip().lower() in ("true","1","yes")
           def n(v,d=0.0):
               try:return float(v)
               except:return d
@@ -181,6 +181,9 @@ jobs:
               good=sum((x>0 if side=="LONG" else x<0) for x in rs); env=5 if good>=2 else (2 if good==1 else 0)
               parts={"HTF":htf,"1H_STRUCTURE_LOCATION":oneh,"15M_ICT":ict,"5M_FVG_OB_RETRACE":five,"ENTRY_LOCATION_CHASE":entryloc,"RR":rrpts,"BTC_MARKET_ENV":env}
               return round(sum(parts.values()),2),parts
+          import csv
+          with open("latest/scan_results.csv",encoding="utf-8-sig",newline="") as f: full=list(csv.DictReader(f))
+          if len(full)<100: raise SystemExit(f"REFUSE INCOMPLETE UNIVERSE: only {len(full)} scan rows")
           rows=[]
           for side,key in (("LONG","longs"),("SHORT","shorts")):
               for src in scan.get(key,[]):
@@ -217,8 +220,10 @@ jobs:
               q["_score100"]=long_score if side=="LONG" else short_score
               q["_parts"]=long_parts if side=="LONG" else short_parts
               add(sym,"UNIVERSE_SMC_POI",q)
-          for s in defaults:add(s,"DEFAULT")
-          for s in positions:add(s,"CURRENT_POSITION")
+          for s in defaults:
+              if s not in {x["symbol"] for x in items}:add(s,"DEFAULT")
+          for s in positions:
+              if s not in {x["symbol"] for x in items}:add(s,"CURRENT_POSITION")
           eligible=[]
           for r in rows:
               if str(r.get("symbol","")).upper() in positions: continue
@@ -227,7 +232,8 @@ jobs:
               if rr<1.5: continue
               eligible.append(r)
           eligible.sort(key=lambda x:x["_score100"],reverse=True); recs=eligible[:3]
-          for r in recs:add(str(r["symbol"]),"DAILY_RECOMMENDATION",r)
+          for r in recs:
+              if str(r["symbol"]).upper() not in {x["symbol"] for x in items}:add(str(r["symbol"]),"DAILY_RECOMMENDATION",r)
           # Watch the same top-3 LONG and SHORT rankings shown in the briefing.
           # These are candidates only: entry requires the live SMC trigger and RR.
           ranking_watch=[]
@@ -237,6 +243,7 @@ jobs:
                   if not sym: continue
                   row=next((v for v in rows if v.get("symbol")==sym and v.get("_side")==direction),None)
                   if row is None: continue
+                  if sym in {x["symbol"] for x in items}: continue
                   add(sym,"SMC_RANKING_WATCH",row)
                   items[-1]["scan_rank"]=rank
                   items[-1]["entry_model_ready_at_scan"]=b(raw.get(direction.lower()+"_entry_model_ready"))
@@ -252,7 +259,8 @@ jobs:
               if good<2: continue
               early.append(r)
           early.sort(key=lambda x:x["_score100"],reverse=True); early=early[:3]
-          for r in early:add(str(r["symbol"]),"EARLY_MOMENTUM",r)
+          for r in early:
+              if str(r["symbol"]).upper() not in {x["symbol"] for x in items}:add(str(r["symbol"]),"EARLY_MOMENTUM",r)
           # Reversal Early: counter-trend candidate at favorable 1H location.
           # Mandatory 15m liquidity sweep + (MSS/CHoCH or displacement). No forced picks.
           reversal=[]
@@ -277,6 +285,7 @@ jobs:
                   reversal.append(q)
           reversal.sort(key=lambda x:x["_reversal_score"],reverse=True); reversal=reversal[:3]
           for r in reversal:
+              if str(r["symbol"]).upper() in {x["symbol"] for x in items}:continue
               add(str(r["symbol"]),"REVERSAL_EARLY",r)
               items[-1]["reversal_early"]=True
               items[-1]["reversal_early_score"]=r["_reversal_score"]
