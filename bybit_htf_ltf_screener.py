@@ -597,146 +597,88 @@ def recent(x, n=3):
 
     return hs, ls
 
+# LuxAlgo SMC-inspired structure port (CC BY-NC-SA 4.0, © LuxAlgo).
+# Reference: https://www.tradingview.com/script/CnB3fSph-Smart-Money-Concepts-LUX/
+# Swing pivots are confirmed only after 50 subsequent bars; internal after 5.
+SMC_SWING_LENGTH = 50
+SMC_INTERNAL_LENGTH = 5
+
+def smc_pivots(d, length=SMC_SWING_LENGTH):
+    """Port of LuxAlgo's leg(size) logic; do not use symmetric fractals."""
+    highs = d.high.to_numpy(dtype=float)
+    lows = d.low.to_numpy(dtype=float)
+    state = 0
+    pivots = []
+    for i in range(length, len(d)):
+        prior = state
+        if highs[i-length] > max(highs[i-length+1:i+1]):
+            state = 0
+        elif lows[i-length] < min(lows[i-length+1:i+1]):
+            state = 1
+        if state != prior:
+            pivots.append((i-length, "low" if state == 1 else "high",
+                           float(lows[i-length] if state == 1 else highs[i-length]), i))
+    return pivots
+
+def smc_structure(d, length=SMC_SWING_LENGTH):
+    """Confirmed-pivot close-cross BOS/CHoCH with one crossing per pivot."""
+    pivots = smc_pivots(d, length)
+    events = []
+    high = low = None
+    high_crossed = low_crossed = False
+    bias = 0
+    cursor = 0
+    for i in range(len(d)):
+        while cursor < len(pivots) and pivots[cursor][3] <= i:
+            _, kind, level, _ = pivots[cursor]
+            if kind == "high":
+                high, high_crossed = level, False
+            else:
+                low, low_crossed = level, False
+            cursor += 1
+        if i == 0:
+            continue
+        prev, close = float(d.close.iloc[i-1]), float(d.close.iloc[i])
+        if high is not None and not high_crossed and prev <= high < close:
+            event = "CHoCH" if bias == -1 else "BOS"
+            events.append((i, "bullish", event, high))
+            bias, high_crossed = 1, True
+        if low is not None and not low_crossed and prev >= low > close:
+            event = "CHoCH" if bias == 1 else "BOS"
+            events.append((i, "bearish", event, low))
+            bias, low_crossed = -1, True
+    return bias, events, high, low
+
 def structure(d):
-
-    x = swings(d)
-
-    hs, ls = recent(
-
-        x,
-
-        3,
-
-    )
-
-    tr = "range"
-
-    sc = 0
-
-    c = float(
-
-        x.close.iloc[-1]
-
-    )
-
-    if (
-
-        len(hs) >= 2
-
-        and
-
-        len(ls) >= 2
-
-    ):
-
-        if (
-
-            hs[-1] > hs[-2]
-
-            and
-
-            ls[-1] > ls[-2]
-
-        ):
-
-            tr = "bullish"
-
-            sc = 2
-
-        elif (
-
-            hs[-1] < hs[-2]
-
-            and
-
-            ls[-1] < ls[-2]
-
-        ):
-
-            tr = "bearish"
-
-            sc = -2
-
-    if hs and c > hs[-1]:
-
-        tr = "bullish"
-
-        sc += 1
-
-    if ls and c < ls[-1]:
-
-        tr = "bearish"
-
-        sc -= 1
-
-    return (
-
-        tr,
-
-        sc,
-
-        hs[-1] if hs else np.nan,
-
-        ls[-1] if ls else np.nan,
-
-    )
+    bias, events, high, low = smc_structure(d)
+    trend = "bullish" if bias == 1 else "bearish" if bias == -1 else "range"
+    return trend, bias * 2, high if high is not None else np.nan, low if low is not None else np.nan
 
 # =========================================================
-
-# Premium / Discount
-
+# LuxAlgo trailing swing Premium / Discount zones
 # =========================================================
 
 def location(d, eq_band=0.10, reference_price=None):
-    """Confirmed structure-based dealing range, never an arbitrary latest pivot pair.
+    """LuxAlgo-style trailing range, not the last BOS pivot pair.
 
-    Only use a confirmed opposing swing range after a closing-price break of
-    structure. Without a confirmed BOS, return unknown instead of falsely
-    advertising a discount or premium. Use a live 5m reference price when
-    classifying the HTF range, not the previous closed 1H candle.
+    Premium/Discount labels occupy outer 5% of the range; Equilibrium
+    occupies the central 5%. Between these labels the price is neutral.
     """
-    x = swings(d.reset_index(drop=True))
-    if len(x) < 8:
+    if len(d) < SMC_SWING_LENGTH + 2:
         return ("unknown", np.nan, np.nan, np.nan, np.nan)
-    highs = [(int(i), float(x.high.iloc[i])) for i in x.index[x.swing_high]]
-    lows = [(int(i), float(x.low.iloc[i])) for i in x.index[x.swing_low]]
-    candidates = []
-    for hi_i, hi in highs:
-        prior = [(j, v) for j, v in lows if j < hi_i and v < hi]
-        if not prior:
-            continue
-        lo_i, lo = prior[-1]
-        # Both pivots must have been confirmed (right=2) before BOS.
-        for k in range(hi_i + 3, len(x)):
-            if float(x.close.iloc[k]) > hi:
-                candidates.append((k, lo_i, hi_i, lo, hi, "bullish"))
-                break
-    for lo_i, lo in lows:
-        prior = [(j, v) for j, v in highs if j < lo_i and v > lo]
-        if not prior:
-            continue
-        hi_i, hi = prior[-1]
-        for k in range(lo_i + 3, len(x)):
-            if float(x.close.iloc[k]) < lo:
-                candidates.append((k, hi_i, lo_i, lo, hi, "bearish"))
-                break
-    if not candidates:
+    pivots = smc_pivots(d, SMC_SWING_LENGTH)
+    if not pivots:
         return ("unknown", np.nan, np.nan, np.nan, np.nan)
-    bos_i, hi_i, lo_i, lo, hi, side = max(candidates, key=lambda z: z[0])
-    # A close through the opposite structural boundary invalidates this range.
-    after = x.iloc[bos_i + 1:]
-    if side == "bullish" and (after.close < lo).any():
-        return ("unknown", np.nan, np.nan, np.nan, np.nan)
-    if side == "bearish" and (after.close > hi).any():
-        return ("unknown", np.nan, np.nan, np.nan, np.nan)
-    price = float(reference_price) if reference_price is not None else float(x.close.iloc[-1])
+    last_pivot_i = pivots[-1][0]
+    hi = float(d.high.iloc[last_pivot_i:].max())
+    lo = float(d.low.iloc[last_pivot_i:].min())
+    price = float(reference_price) if reference_price is not None else float(d.close.iloc[-1])
     if not np.isfinite(price) or hi <= lo:
         return ("unknown", np.nan, np.nan, np.nan, np.nan)
     pos = (price - lo) / (hi - lo)
     eq = (hi + lo) / 2.0
-    half_band = max(0.0, min(float(eq_band), 1.0)) / 2.0
-    zone = "discount" if pos < 0.5-half_band else "premium" if pos > 0.5+half_band else "equilibrium"
-    return (zone, pos, hi, lo, eq)
+    zone = "discount" if pos <= 0.05 else "premium" if pos >= 0.95 else "equilibrium" if 0.475 <= pos <= 0.525 else "neutral"
+    return zone, pos, hi, lo, eq
 
 # =========================================================
 
