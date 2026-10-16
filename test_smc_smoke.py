@@ -42,4 +42,21 @@ assert 'patched = code' not in wrapper
 assert 'old_15m' not in wrapper
 assert '1D_last_bos_side' in source
 assert '1D_last_choch_side' in source
+# Deterministic regression: pivots are confirmed and BOS is not repeated.
+pivots = scope["smc_pivots"](data)
+assert len(pivots) > 0
+assert all(confirmed_at >= pivot_at + 50 for pivot_at, _, _, confirmed_at in pivots)
+bias, events, _, _ = scope["smc_structure"](data)
+assert bias in (-1, 0, 1)
+assert all(event[2] in ("BOS", "CHoCH") for event in events)
+
+# An old gap must never masquerade as a fresh 5m entry.
+gap = pd.DataFrame([
+    {"open": 10, "high": 11, "low": 9, "close": 10},
+    {"open": 12, "high": 13, "low": 12, "close": 12.5},
+    {"open": 14, "high": 15, "low": 14, "close": 14.5},
+    {"open": 12, "high": 13, "low": 11.5, "close": 12},
+])
+assert scope["strict_fvg"](gap)[0] is None
+assert scope["strict_fvg"](gap.iloc[:3])[0] == "bullish"
 print("SMC smoke tests passed")
