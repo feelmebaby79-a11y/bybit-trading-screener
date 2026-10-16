@@ -604,16 +604,19 @@ SMC_SWING_LENGTH = 50
 SMC_INTERNAL_LENGTH = 5
 
 def smc_pivots(d, length=SMC_SWING_LENGTH):
-    """Confirmed LuxAlgo-style alternating swing legs, without lookahead."""
+    """Confirmed swing leg transitions with no future-bar leakage."""
     highs = d.high.to_numpy(dtype=float)
     lows = d.low.to_numpy(dtype=float)
     state = 0
     pivots = []
     for i in range(length, len(d)):
         prior = state
-        if highs[i-length] > max(highs[i-length+1:i+1]):
+        # LuxAlgo's high[length] > highest(length) / low[length] < lowest(length).
+        new_high_leg = highs[i-length] > np.max(highs[i-length+1:i+1])
+        new_low_leg = lows[i-length] < np.min(lows[i-length+1:i+1])
+        if new_high_leg:
             state = 0
-        elif lows[i-length] < min(lows[i-length+1:i+1]):
+        elif new_low_leg:
             state = 1
         if state != prior:
             pivots.append((i-length, "low" if state == 1 else "high",
