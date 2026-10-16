@@ -11,6 +11,7 @@ on:
       - 'run_structural_screener.py'
       - 'relative_strength_rerank.py'
       - 'requirements.txt'
+      - 'test_smc_smoke.py'
   schedule:
     # 07:55 KST prewarm full-universe scan; 08:30 health-check/recovery; 08:50 briefing.
     # Last verified 706-symbol run took 32m27s; allow 55m rather than 20m.
@@ -50,6 +51,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Verify SMC engine and runtime wrapper
+        run: |
+          python test_smc_smoke.py
 
       - name: Run screener
         run: |
