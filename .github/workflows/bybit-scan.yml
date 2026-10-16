@@ -64,7 +64,7 @@ jobs:
       - name: Run screener
         run: |
           python run_structural_screener.py \
-            --max-symbols 160 \
+            --max-symbols 0 \
             --min-turnover 0 \
             --top 15 \
             --output scan_results.csv
