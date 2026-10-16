@@ -36,15 +36,10 @@ assert scope["feat"](data)["trend"] == snap["trend"]
 assert isinstance(scope["trigger"](data, "LONG")["score"], int)
 assert len(scope["rr_hint"](data, "LONG")) == 4
 
-# Validate that the wrapper's runtime string patches actually apply.
-# Stub main invocation; avoid public API requests.
-wscope = {"__name__": "smc_test_wrapper", "__file__": str(ROOT / "run_structural_screener.py")}
-wrapper_test = wrapper.replace(
-    'exec(compile(patched, str(SOURCE), "exec"), {"__name__": "__main__", "__file__": str(SOURCE)})',
-    'ast.parse(patched)',
-)
-exec(compile(wrapper_test, "wrapper_test", "exec"), {**wscope, "ast": ast})
-# Also validate the full patched module without executing network requests.
-patched = scope["smc_snapshot"]  # central SMC entrypoint must remain callable
-assert callable(patched)
+# Wrapper must delegate to the canonical scanner without rewriting its code.
+assert 'runpy.run_path(str(SOURCE), run_name="__main__")' in wrapper
+assert 'patched = code' not in wrapper
+assert 'old_15m' not in wrapper
+assert '1D_last_bos_side' in source
+assert '1D_last_choch_side' in source
 print("SMC smoke tests passed")
