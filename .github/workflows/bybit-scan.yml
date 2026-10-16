@@ -190,10 +190,20 @@ jobs:
               s=str(r.get("symbol","")).upper()
               if s and (s not in bysym or r["_score100"]>bysym[s]["_score100"]): bysym[s]=r
           defaults=["BTCUSDT","ETHUSDT","XRPUSDT","SOLUSDT","BNBUSDT"]; positions=scan.get("position_symbols") or []; items=[]; seen=set()
+          def smc_poi(r,side):
+              trend="bullish" if side=="LONG" else "bearish"
+              for tf in ("15m","1H"):
+                  for kind in ("ob","fvg"):
+                      prefix=tf+"_smc_"+kind
+                      if str(r.get(prefix+"_side") or "").lower()!=trend: continue
+                      low=n(r.get(prefix+"_low"),0); high=n(r.get(prefix+"_high"),0)
+                      if low>0 and high>low:
+                          return low,high,tf,"SMC50_"+kind.upper()
+              return None,None,None,None
           def add(sym,bucket,r=None):
               sym=sym.upper(); r=r or bysym.get(sym,{}); side=r.get("_side","LONG"); key=(sym,bucket)
               if key in seen:return
-              seen.add(key); items.append({"symbol":sym,"direction":side,"score":r.get("_score100"),"score_scale":100,"score_breakdown":r.get("_parts"),"poi_low":None,"poi_high":None,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","updated_at":generated})
+              seen.add(key); pl,ph,pt,ps=smc_poi(r,side); items.append({"symbol":sym,"direction":side,"score":r.get("_score100"),"score_scale":100,"score_breakdown":r.get("_parts"),"poi_low":pl,"poi_high":ph,"poi_tf":pt,"poi_source":ps,"smc_swing_length":50,"status":"ACTIVE","bucket":bucket,"trigger_model":"1H/15m POI -> 5m liquidity sweep -> MSS/CHoCH + displacement -> strict FVG/validated OB first retracement -> live RR >= 1.5","updated_at":generated})
           for s in defaults:add(s,"DEFAULT")
           for s in positions:add(s,"CURRENT_POSITION")
           eligible=[]
