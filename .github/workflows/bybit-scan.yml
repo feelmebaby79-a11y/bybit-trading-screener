@@ -52,6 +52,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Record fresh scan request time
+        run: |
+          echo "SCAN_REQUESTED_AT_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          date -u '+Full-universe Bybit SMC scan requested at %Y-%m-%d %H:%M:%S UTC'
+
       - name: Verify SMC engine and runtime wrapper
         run: |
           python test_smc_smoke.py
