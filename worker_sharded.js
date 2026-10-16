@@ -5,7 +5,7 @@ import { runScheduledOiSurgeWatch } from "./oi_surge_alert.js";
 const BYBIT_BASE="https://api.bybit.com";
 const GITHUB_OWNER="feelmebaby79-a11y",GITHUB_REPO="bybit-trading-screener",GITHUB_BRANCH="main";
 const STATE_TTL_SECONDS=60*60*24*7;
-const SHARD_COUNT=48;
+const SHARD_COUNT=96;
 // Deployment check: preserve existing SMC50 monitoring behavior.
 // One-shot deploy verification: Telegram transport smoke test is triggered by commit marker.
 
