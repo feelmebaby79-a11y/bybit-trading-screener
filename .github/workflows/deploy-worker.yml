@@ -66,6 +66,27 @@ jobs:
             echo 'WORKER_GITHUB_TOKEN not configured; preserving existing Worker secret.'
           fi
 
+      - name: Verify deployed POI live scoring marker
+        run: |
+          python - <<'PY'
+          import json, time, urllib.request
+          url = "https://bybit-trading-screener.feelmebaby79.workers.dev/deployment-status"
+          for attempt in range(6):
+              try:
+                  req = urllib.request.Request(url, headers={"User-Agent": "bybit-deploy-verifier"})
+                  with urllib.request.urlopen(req, timeout=20) as response:
+                      payload = json.load(response)
+                  assert payload.get("ok") is True, payload
+                  assert payload.get("poi_live_score") is True, payload
+                  assert payload.get("entry_live_score") is True, payload
+                  assert payload.get("build_id") == "b86bab3acfadb3eabc9ce18c31e4fea7e43ae70f", payload
+                  print("DEPLOYED POI LIVE SCORE VERIFIED:", json.dumps(payload))
+                  break
+              except Exception:
+                  if attempt == 5: raise
+                  time.sleep(10)
+          PY
+
       - name: Smoke test authenticated position lookup
         env:
           WORKER_ACCESS_KEY: ${{ secrets.WORKER_ACCESS_KEY }}
