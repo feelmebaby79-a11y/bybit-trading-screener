@@ -23,13 +23,13 @@ jobs:
           key=os.environ["WORKER_ACCESS_KEY"]
           def run(task):
               mode,shard=task
-              req=urllib.request.Request(f"{base}/run-shard?shards=192&shard={shard}&mode={mode}",data=b"{}",method="POST",headers={"Authorization":"Bearer "+key,"Content-Type":"application/json","User-Agent":"bybit-worker-deploy-smoke-test"})
+              req=urllib.request.Request(f"{base}/run-shard?shards=256&shard={shard}&mode={mode}",data=b"{}",method="POST",headers={"Authorization":"Bearer "+key,"Content-Type":"application/json","User-Agent":"bybit-worker-deploy-smoke-test"})
               try:
                   with urllib.request.urlopen(req,timeout=95) as r: return f"{mode}:{shard}",json.load(r)
               except urllib.error.HTTPError as e: return f"{mode}:{shard}",{"ok":False,"error":str(e),"body":e.read(300).decode("utf-8","replace"),"server":e.headers.get("server")}
               except Exception as e: return shard,{"ok":False,"error":str(e)}
           with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-              results=dict(pool.map(run,[(mode,shard) for mode in ("poi","entry") for shard in range(192)]))
+              results=dict(pool.map(run,[(mode,shard) for mode in ("poi","entry") for shard in range(256)]))
           failures={k:v for k,v in results.items() if not v.get("ok") or v.get("error_count")}
           print("shards",len(results),"failures",len(failures),"poi_arrivals",sum(v.get("arrivals",0) for v in results.values()),"entry_candidates",sum(v.get("candidates",0) for v in results.values()),flush=True)
           for k,v in failures.items(): print("FAIL",k,json.dumps(v,ensure_ascii=False)[:1000],flush=True)
