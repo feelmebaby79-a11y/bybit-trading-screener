@@ -37,7 +37,7 @@ if old_universe_cap in patched:
 
 # Add structural metadata to feature dictionaries without changing scoring fields.
 old_feat = '''    tr, sc, _, _ = structure(d)\n\n    zone, pos, hi, lo, eq = location(d, reference_price=reference_price)'''
-new_feat = '''    tr, sc, _, _ = structure(d)\n\n    structure_meta = d.attrs.get("structure_meta", {})\n\n    zone, pos, hi, lo, eq = location(d)'''
+new_feat = '''    tr, sc, _, _ = structure(d)\n\n    structure_meta = d.attrs.get("structure_meta", {})\n\n    zone, pos, hi, lo, eq = location(d, reference_price=reference_price)'''
 if old_feat not in patched: raise RuntimeError("Feature patch target missing; abort scan")
 patched = patched.replace(old_feat, new_feat, 1)
 old_eq = '''        "eq": eq,\n\n    }'''
