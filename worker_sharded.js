@@ -80,7 +80,7 @@ TP1: <code>${formatPrice(t.tp1)}</code>
 TP2: <code>${formatPrice(t.tp2)}</code>
 
 <b>시장가 추격 금지. No retrace = no trade.</b>`}
-async function processPoiAlerts(env,e){for(const i of e.arrivals||[]){if(!validPoi(i)||i.smc_swing_length!==50||i.score_scale!==100||!Number.isFinite(i.score))continue;const k=`poi-touch:${i.poi_id}`;if(await stateHas(env,k))continue;await sendTelegram(env,poiMsg(i));await stateSet(env,k,"1")}}
+async function processPoiAlerts(env,e){for(const i of e.arrivals||[]){if(!validPoi(i)||i.smc_swing_length!==50||i.score_scale!==100||!Number.isFinite(i.score)||i.score_mode!=="LIVE_APPROXIMATION_NOT_LUXALGO_VERIFIED"||!i.score_updated_at||!i.score_breakdown)continue;const k=`poi-touch:${i.poi_id}`;if(await stateHas(env,k))continue;await sendTelegram(env,poiMsg(i));await stateSet(env,k,"1")}}
 async function processEntryAlerts(env,e){for(const i of e.candidates||[]){const id=i?.trigger?.event_id;if(!validPoi(i)||i.smc_swing_length!==50||i.score_scale!==100||!Number.isFinite(i.score)||!id)continue;const ck=`consumed:${i.poi_id}`,ek=`entry:${id}`;if(await stateHas(env,ck)||await stateHas(env,ek))continue;await sendTelegram(env,entryMsg(i));await stateSet(env,ek,"1");await stateSet(env,ck,"1")}}
 async function runMarketShard(env,shard){try{const realtime=await evalRealtimeShard(env,shard,SHARD_COUNT);await processPoiAlerts(env,realtime);const entry=await evalEntryShard(env,shard,SHARD_COUNT);await processEntryAlerts(env,entry)}catch(e){console.error("Realtime/ENTRY shard failed",e)}}
 function isAuthorizedWorkerRequest(request,env){const expected=String(env.WORKER_ACCESS_KEY||"").trim(),auth=String(request.headers.get("authorization")||"").trim();return!!expected&&auth===`Bearer ${expected}`}
