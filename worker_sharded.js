@@ -56,7 +56,7 @@ async function liveEntryScore(item,candles5m,entry){
  parts["5M_FVG_OB_RETRACE"]=(fvg?5:0)+(entry?.ready?10:0);
  parts.RR=Number.isFinite(rr)?rr>=2?10:rr>=1.5?8:rr>=1?4:0:0;
  const score=Math.round(Object.values(parts).reduce((sum,v)=>sum+(Number(v)||0),0)*100)/100;
- return{score,score_breakdown:parts,score_updated_at:new Date().toISOString(),score_mode:"FULL_LIVE_100",score_live_components:Object.keys(parts)};
+ return{score,score_breakdown:parts,score_updated_at:new Date().toISOString(),score_mode:"LIVE_APPROXIMATION_NOT_LUXALGO_VERIFIED",score_live_components:Object.keys(parts)};
 }
 
 function formatPrice(v){const n=+v;if(!Number.isFinite(n))return"n/a";if(n>=1000)return n.toFixed(2);if(n>=1)return n.toFixed(4);if(n>=.01)return n.toFixed(5);return n.toFixed(8)}
