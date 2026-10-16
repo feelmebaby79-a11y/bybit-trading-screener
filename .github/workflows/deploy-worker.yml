@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   deploy:
@@ -28,6 +29,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+
+      - name: Publish verification started
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/statuses/$SHA" -d '{"state":"pending","context":"production/live-poi-telegram","description":"Production verification running"}'
 
       - name: Check Worker JavaScript syntax
         run: |
@@ -172,3 +181,15 @@ jobs:
           if not payload.get("ok") or not payload.get("telegram_sent"): raise SystemExit("telegram test failed: "+repr(payload))
           print("telegram transport test OK")
           PY
+
+      - name: Publish production verification result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          RESULT: ${{ job.status }}
+        run: |
+          if [ "$RESULT" = "success" ]; then STATE=success; DESC="Deployment and Telegram transport checks passed"; else STATE=failure; DESC="Production verification failed; inspect Actions logs"; fi
+          printf '{"state":"%s","context":"production/live-poi-telegram","description":"%s"}' "$STATE" "$DESC" > /tmp/verification-status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPO/statuses/$SHA" --data-binary @/tmp/verification-status.json
