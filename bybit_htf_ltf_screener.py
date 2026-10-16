@@ -1194,6 +1194,10 @@ def scan_symbol(
         "1H": F["1H"]["trend"],
 
         "15m": F["15m"]["trend"],
+        "1D_last_bos_side": next((e[1] for e in reversed(smc_structure(D["1D"])[1]) if e[2] == "BOS"), None),
+        "1D_last_bos_level": next((e[3] for e in reversed(smc_structure(D["1D"])[1]) if e[2] == "BOS"), np.nan),
+        "1D_last_choch_side": next((e[1] for e in reversed(smc_structure(D["1D"])[1]) if e[2] == "CHoCH"), None),
+        "1D_last_choch_level": next((e[3] for e in reversed(smc_structure(D["1D"])[1]) if e[2] == "CHoCH"), np.nan),
 
         "4H_location": F["4H"]["zone"],
 
