@@ -60,3 +60,5 @@ gap = pd.DataFrame([
 assert scope["strict_fvg"](gap)[0] is None
 assert scope["strict_fvg"](gap.iloc[:3])[0] == "bullish"
 print("SMC smoke tests passed")
+
+# CI verification branch: run this exact suite on GitHub-hosted Python 3.12.
