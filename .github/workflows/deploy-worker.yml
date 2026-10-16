@@ -115,7 +115,10 @@ jobs:
               with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"live-score-verifier"}),timeout=90) as response:
                   payload=json.load(response)
               assert payload.get("ok") is True, payload
-              assert payload.get("error_count")==0, (shard,payload.get("error_count"))
+              if payload.get("error_count"):
+                  from collections import Counter
+                  print("SHARD_ERRORS",shard,dict(Counter(str(x.get("error")) for x in payload.get("items",[]) if x.get("error"))),flush=True)
+                  raise AssertionError((shard,payload.get("error_count")))
               for item in payload.get("arrivals",[]):
                   parts=item.get("score_breakdown")
                   assert item.get("score_mode")=="LIVE_APPROXIMATION_NOT_LUXALGO_VERIFIED",item
