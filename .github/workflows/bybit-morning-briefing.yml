@@ -1,0 +1,60 @@
+name: Bybit Morning Briefing
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Bybit HTF LTF Scan"]
+    types: [completed]
+  schedule:
+    - cron: '50 23 * * *'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: bybit-morning-briefing
+  cancel-in-progress: false
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish independently of realtime POI status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          python - <<'PY'
+          import os, json, base64, urllib.request
+          from datetime import datetime, timezone, timedelta
+          now=datetime.now(timezone.utc)
+          kst=timezone(timedelta(hours=9))
+          day=now.astimezone(kst).strftime('%Y-%m-%d')
+          base='https://api.github.com/repos/'+os.environ['REPO']
+          headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','User-Agent':'bybit-morning-brief'}
+          def api(path,method='GET',payload=None):
+              body=None if payload is None else json.dumps(payload,ensure_ascii=False).encode()
+              req=urllib.request.Request(base+path,headers=headers,data=body,method=method)
+              with urllib.request.urlopen(req,timeout=30) as resp:return json.load(resp)
+          def get_file(path):
+              obj=api('/contents/'+path)
+              return json.loads(base64.b64decode(obj['content']))
+          title='[Bybit Morning Briefing] '+day
+          issues=api('/issues?state=all&per_page=100')
+          if any(x.get('title')==title for x in issues):
+              print('Already published',title)
+              raise SystemExit(0)
+          scan=get_file('latest/scan.json')
+          generated=datetime.fromisoformat(scan['generated_at'].replace('Z','+00:00'))
+          start=datetime.combine(now.astimezone(kst).date(),datetime.min.time(),kst).replace(hour=7,minute=55).astimezone(timezone.utc)
+          valid=generated>=start and generated<=now and scan.get('position_fetch_ok') is True and int(scan.get('universe_count') or 0)>=706
+          body=['# Bybit 오전 브리핑 — '+day,'','- 발행: '+now.astimezone(kst).isoformat(),'- 스캔 시각: '+generated.astimezone(kst).isoformat(),'- 전체 종목: '+str(scan.get('universe_count')),'- 포지션 조회 성공: '+str(scan.get('position_fetch_ok'))]
+          if not valid:
+              body+=['','**브리핑 보류: 오늘 07:55 KST 이후의 유효한 706종목 이상 스캔을 확보하지 못했습니다. 전일 추천을 재사용하지 않습니다.**']
+          else:
+              body+=['','## 보유 포지션',', '.join(scan.get('position_symbols') or []) or '(없음)']
+              for side,key in [('롱','longs'),('숏','shorts')]:
+                  body+=['','## '+side+' 상위 스캔 후보']
+                  for item in (scan.get(key) or [])[:10]:
+                      body.append('- '+str(item.get('symbol','?'))+' (1D '+str(item.get('1D'))+', 4H '+str(item.get('4H'))+')')
+              body+=['','**주의:** 스캔 후보는 진입 신호가 아닙니다. 실시간 POI·ENTRY 확인 전에는 진입 트리거가 확정되지 않았습니다.','실시간 스냅샷 장애와 무관하게 스캔 브리핑을 발행합니다.']
+          issue=api('/issues','POST',{'title':title,'body':'\n'.join(body)})
+          print('Published',issue['html_url'])
+          PY
