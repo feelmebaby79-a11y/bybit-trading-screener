@@ -115,8 +115,16 @@ jobs:
               return p
           full=clean(read_csv("scan_results.csv")); longs=clean(read_csv("scan_results_long.csv")); shorts=clean(read_csv("scan_results_short.csv"))
           analysis_by_symbol={str(r.get("symbol")).upper():r for r in full if r.get("symbol")}
-          try: position_symbols=fetch_position_symbols(); position_fetch_ok=True; position_fetch_error=None
-          except Exception as exc: position_symbols=[]; position_fetch_ok=False; position_fetch_error=str(exc)
+          import time
+          position_symbols=[]; position_fetch_ok=False; position_fetch_error=None
+          for position_attempt in range(1,6):
+              try:
+                  position_symbols=fetch_position_symbols(); position_fetch_ok=True; position_fetch_error=None
+                  break
+              except Exception as exc:
+                  position_fetch_error=f"{type(exc).__name__}: {exc}"
+                  print(f"Position API attempt {position_attempt}/5 failed: {position_fetch_error}",flush=True)
+                  if position_attempt<5: time.sleep(min(30,5*position_attempt))
           positions={}
           for symbol in position_symbols:
               try: market=fetch_position_market(symbol); market_ok=True; market_error=None
