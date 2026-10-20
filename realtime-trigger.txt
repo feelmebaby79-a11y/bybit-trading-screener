@@ -1,1 +1,1 @@
-manual realtime snapshot refresh 2026-10-20 11:05 KST; 96 shards; retry diagnostics
+manual snapshot refresh 2026-10-20 11:14 KST; 256 shards Cloudflare subrequest limit fix
