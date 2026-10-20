@@ -15,7 +15,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Backtest Bybit ICT model proxies
+      - name: Download Binance Vision futures 5m candles
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p backtest_data
+          for s in BTCUSDT ETHUSDT SOLUSDT; do
+            : > "backtest_data/${s}.csv"
+            for i in $(seq 0 95); do
+              d=$(date -u -d "-$i day" +%F)
+              u="https://data.binance.vision/data/futures/um/daily/klines/${s}/5m/${s}-5m-${d}.zip"
+              if curl --retry 2 --retry-delay 1 -fsSL "$u" -o /tmp/ict-k.zip; then
+                unzip -p /tmp/ict-k.zip >> "backtest_data/${s}.csv"
+                printf '\\n' >> "backtest_data/${s}.csv"
+              fi
+            done
+            test -s "backtest_data/${s}.csv"
+          done
+      - name: Backtest ICT model proxies on Binance Vision proxy
         run: python ict_models_backtest.py
       - name: Save backtest outputs
         if: always()
