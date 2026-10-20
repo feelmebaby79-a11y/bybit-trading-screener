@@ -71,7 +71,14 @@ def run(sym,b,execution):
    if ex[j][3]<=entry<=ex[j][2]:fill=j;break
   if fill is None:return
   result=None
-  for j in range(fill+1,len(ex)):
+  # A newly filled limit order can hit its stop/target in the fill candle.
+  # Without tick data, conservatively resolve ambiguous same-candle paths stop-first.
+  j=fill
+  stop=ex[j][3]<=sl if d==1 else ex[j][2]>=sl
+  target=ex[j][2]>=tp if d==1 else ex[j][3]<=tp
+  if stop:result=-1
+  elif target:result=(tp-entry)*d/((entry-sl)*d)
+  for j in range(fill+1,len(ex)) if result is None else () :
    stop=ex[j][3]<=sl if d==1 else ex[j][2]>=sl
    target=ex[j][2]>=tp if d==1 else ex[j][3]<=tp
    if stop:result=-1;break
