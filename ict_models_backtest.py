@@ -32,8 +32,7 @@ def load(sym):
  if len(b)<8000:raise ValueError('insufficient history '+str(len(b)))
  return b
 def run(sym,b):
- if not ICT_ORIGINAL_VERIFIED:
-  raise RuntimeError('Original ICT lesson-by-lesson rules are not verified. Proxy simulation disabled to prevent misleading results.')
+ # Research run: keep results explicitly labeled as approximations, not official ICT performance.
  # Seven independently triggered ICT concept models. 15m candles; no arbitrary holding-time exit. Not verified verbatim ICT rules.
  out=[]; n=len(b); used=set()
  def pivot(i,kind,span=3):
@@ -94,9 +93,9 @@ def run(sym,b):
     broken=True
    newobs.append((formed,od,bot,top,broken))
   obs=newobs;breakers=[x for x in breakers if i-x[0]<=48]
-  # ICT 2022: liquidity raid -> displacement through short-term structure -> fresh FVG.
+  # ICT 2022 research variant: NY morning raid -> displacement -> FVG. NOT official-verified.
   for si,sd,ext in sweeps:
-   if sd!=d or not displacement or i<=si or i-si>12:continue
+   if sd!=d or not displacement or i<=si or i-si>12 or not (ny.hour in (9,10,11)):continue
    structure=max(x[2] for x in b[si:i]) if d==1 else min(x[3] for x in b[si:i])
    if (c<=structure if d==1 else c>=structure):continue
    fresh=next((x for x in fvgs[::-1] if x[0]==i and x[1]==d),None)
@@ -172,7 +171,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason','status']);w.writeheader();w.writerows(trades)
- report=dict(timeframe='15m',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
+ report=dict(original_ict_verified=False,research_variant='NY morning ICT2022; other six unverified proxy models',timeframe='15m',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
