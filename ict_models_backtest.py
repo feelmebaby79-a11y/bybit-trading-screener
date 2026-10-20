@@ -2,7 +2,19 @@ import json,urllib.request,time,datetime,collections,os,csv
 from zoneinfo import ZoneInfo
 SYMS=['BTCUSDT','ETHUSDT','SOLUSDT']; MS=300000; END=int(time.time()*1000)//MS*MS; START=END-90*86400000
 def load(sym):
- d={}; end=END
+ d={}
+ path=f'backtest_data/{sym}.csv'
+ if os.path.exists(path):
+  with open(path) as fh:
+   for line in fh:
+    x=line.strip().split(',')
+    if len(x)<5 or not x[0].isdigit():continue
+    t=int(x[0]);
+    if START<=t<END:d[t]=(t,float(x[1]),float(x[2]),float(x[3]),float(x[4]))
+  b=[d[k] for k in sorted(d)]
+  if len(b)<18000:raise ValueError('insufficient proxy history '+str(len(b)))
+  return b
+ end=END
  while end>=START:
   u=f'https://api.bybit.com/v5/market/kline?category=linear&symbol={sym}&interval=5&limit=1000&end={end}'
   with urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'ICT-backtest'}),timeout=30) as r:j=json.load(r)
@@ -78,7 +90,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r']);w.writeheader();w.writerows(trades)
- report=dict(created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Bybit linear 5m candles',swing_pivot=50,roundtrip_fee=.0012,limitations=['ICT-inspired proxy, not exact LuxAlgo source','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),stats=stats)
+ report=dict(created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 5m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,limitations=['ICT-inspired proxy, not exact LuxAlgo source','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
