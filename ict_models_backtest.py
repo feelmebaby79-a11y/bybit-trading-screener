@@ -31,7 +31,7 @@ def load(sym):
  if len(b)<8000:raise ValueError('insufficient history '+str(len(b)))
  return b
 def run(sym,b):
- # Seven independently triggered ICT concept models. Objective proxies, NOT verified verbatim ICT rules.
+ # Seven independently triggered ICT concept models. 15m candles; no arbitrary holding-time exit. Not verified verbatim ICT rules.
  out=[]; n=len(b); used=set()
  def pivot(i,kind,span=3):
   if i<span*2:return False
