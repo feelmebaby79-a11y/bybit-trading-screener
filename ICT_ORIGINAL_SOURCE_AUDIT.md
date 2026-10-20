@@ -40,3 +40,7 @@ Official video: https://www.youtube.com/watch?v=tRq1hyGGtl4 (2023-05-15, ICT Sil
 
 ## Remaining source work
 Official original lesson IDs and exact timestamp-level rules remain unverified for Unicorn, Breaker, OTE, Mitigation Block, and OB Continuation. A seven-model original-ICT performance claim is not currently supported.
+
+## Newly located official breaker primary source
+- Official The Inner Circle Trader channel, **ICT Mentorship Core Content - Month 04 - ICT Breaker Block** (published 2022-09-08, original 2016 material): https://www.youtube.com/watch?v=UrS-mtGHtAA
+- **Important:** Locating the video does not verify precise candle-by-candle conditions. The existing breaker generator remains an unverified proxy and must not be presented as faithful to this lecture until the lesson examples and invalidation rules are manually checked.
