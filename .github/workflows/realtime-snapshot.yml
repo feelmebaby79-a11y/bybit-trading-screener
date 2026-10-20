@@ -9,14 +9,15 @@ on:
     workflows: ["Bybit HTF LTF Scan"]
     types: [completed]
   schedule:
-    - cron: '*/5 * * * *'
+    # GitHub scheduled runs are best-effort and can be delayed or dropped.
+    - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
 
 permissions:
   contents: write
 
 concurrency:
   group: realtime-poi-snapshot
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   snapshot:
