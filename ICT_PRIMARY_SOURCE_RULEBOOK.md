@@ -36,3 +36,6 @@ BTCUSDT, ETHUSDT, SOLUSDT, trailing 90 days; 15m context + 2m execution, where s
 
 ## Source caution
 Michael's examples are often discretionary and taught on Nasdaq futures; transposing to crypto is an explicit **research extrapolation**, not a claim he personally tested crypto.
+
+## Primary-source admissibility policy (2026-10-20)
+Search results titled 'ICT Breaker Block Trading Strategy' (Technical Analysis in Hindi, 2025-09-27) and 'ICT Mitigation Block Trading Strategy Explain' (Technical Analysis in Hindi, 2026-02-26) are **third-party summaries**. Neither is authored by Michael J. Huddleston. They are explicitly disallowed as sources for original-rule implementation. A model name alone is not an executable strategy: entry, stop, target, and invalidation must be traced to original lecture evidence.
