@@ -1,6 +1,6 @@
 import json,urllib.request,time,datetime,collections,os,csv
 from zoneinfo import ZoneInfo
-SYMS=['BTCUSDT','ETHUSDT','SOLUSDT']; MS=300000; END=int(time.time()*1000)//MS*MS; START=END-90*86400000
+SYMS=['BTCUSDT','ETHUSDT','SOLUSDT']; MS=900000; END=int(time.time()*1000)//MS*MS; START=END-90*86400000
 def load(sym):
  d={}
  path=f'backtest_data/{sym}.csv'
@@ -12,11 +12,11 @@ def load(sym):
     t=int(x[0]);
     if START<=t<END:d[t]=(t,float(x[1]),float(x[2]),float(x[3]),float(x[4]))
   b=[d[k] for k in sorted(d)]
-  if len(b)<18000:raise ValueError('insufficient proxy history '+str(len(b)))
+  if len(b)<8000:raise ValueError('insufficient proxy history '+str(len(b)))
   return b
  end=END
  while end>=START:
-  u=f'https://api.bybit.com/v5/market/kline?category=linear&symbol={sym}&interval=5&limit=1000&end={end}'
+  u=f'https://api.bybit.com/v5/market/kline?category=linear&symbol={sym}&interval=15&limit=1000&end={end}'
   with urllib.request.urlopen(urllib.request.Request(u,headers={'User-Agent':'ICT-backtest'}),timeout=30) as r:j=json.load(r)
   if j.get('retCode')!=0:raise ValueError(j)
   a=j['result']['list']
@@ -28,7 +28,7 @@ def load(sym):
   if oldest<=START:break
   end=oldest-1;time.sleep(.08)
  b=[d[k] for k in sorted(d)]
- if len(b)<18000:raise ValueError('insufficient history '+str(len(b)))
+ if len(b)<8000:raise ValueError('insufficient history '+str(len(b)))
  return b
 def run(sym,b):
  # Seven independently triggered ICT concept models. Objective proxies, NOT verified verbatim ICT rules.
@@ -39,25 +39,28 @@ def run(sym,b):
   v=b[k][2 if kind=='H' else 3]
   return (v== (max(x[2] for x in b[k-span:i+1]) if kind=='H' else min(x[3] for x in b[k-span:i+1])))
  def submit(model,i,d,entry,sl,tp,reason):
-  if not (0<i<n-290 and (entry-sl)*d>0 and (tp-entry)*d>0):return
+  if not (0<i<n-1 and (entry-sl)*d>0 and (tp-entry)*d>0):return
   key=(model,i,d)
   if key in used:return
   used.add(key)
   fill=None
-  for j in range(i+1,min(i+13,n-289)):
+  for j in range(i+1,min(i+13,n)):
    if (b[j][3]<=sl if d==1 else b[j][2]>=sl):break
    if b[j][3]<=entry<=b[j][2]:fill=j;break
   if fill is None:return
   result=None
-  for j in range(fill+1,min(fill+289,n)):
+  for j in range(fill+1,n):
    stop=b[j][3]<=sl if d==1 else b[j][2]>=sl
    target=b[j][2]>=tp if d==1 else b[j][3]<=tp
    if stop:result=-1;break
    if target:result=(tp-entry)*d/((entry-sl)*d);break
-  if result is None:return
-  out.append(dict(symbol=sym,model=model,signal_utc=datetime.datetime.fromtimestamp(b[i][0]/1000,datetime.timezone.utc).isoformat(),side='LONG' if d==1 else 'SHORT',entry=round(entry,8),sl=round(sl,8),tp=round(tp,8),gross_r=round(result,5),net_r=round(result-.0012*entry/abs(entry-sl),5),reason=reason))
+  if result is None:
+   result=(b[-1][4]-entry)*d/abs(entry-sl)
+   status='OPEN_MARK_TO_MARKET'
+  else:status='CLOSED'
+  out.append(dict(symbol=sym,model=model,signal_utc=datetime.datetime.fromtimestamp(b[i][0]/1000,datetime.timezone.utc).isoformat(),side='LONG' if d==1 else 'SHORT',entry=round(entry,8),sl=round(sl,8),tp=round(tp,8),status=status,gross_r=round(result,5),net_r=round(result-.0012*entry/abs(entry-sl),5),reason=reason))
  highs=[];lows=[]; fvgs=[]; obs=[]; breakers=[]; sweeps=[]
- for i in range(60,n-290):
+ for i in range(60,n-1):
   t,o,h,l,c=b[i];prev=b[i-1]; d=1 if c>o else -1
   if pivot(i,'H'):highs.append((i-3,b[i-3][2]))
   if pivot(i,'L'):lows.append((i-3,b[i-3][3]))
@@ -158,14 +161,15 @@ def main():
    b=load(sym);print(sym,'candles',len(b),flush=True);trades+=run(sym,b)
   except Exception as e:errors[sym]=str(e);print('ERROR',sym,e,flush=True)
  groups=collections.defaultdict(list)
- for t in trades:groups[(t['model'],t['symbol'])].append(t)
+ for t in trades:
+  if t['status']=='CLOSED':groups[(t['model'],t['symbol'])].append(t)
  stats=[]
  for (model,sym),a in sorted(groups.items()):
   stats.append(dict(model=model,symbol=sym,trades=len(a),wins=sum(x['net_r']>0 for x in a),win_rate_pct=round(100*sum(x['net_r']>0 for x in a)/len(a),2),avg_net_r=round(sum(x['net_r'] for x in a)/len(a),4)))
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
-  w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason']);w.writeheader();w.writerows(trades)
- report=dict(created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 5m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),stats=stats)
+  w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason','status']);w.writeheader();w.writerows(trades)
+ report=dict(timeframe='15m',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
