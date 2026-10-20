@@ -1,41 +1,27 @@
-# ICT seven-model original-source implementation checklist
+# Original Michael J. Huddleston source register — seven requested models
 
-**Status: incomplete; do not report proxy backtests as Michael J. Huddleston original.**
+Policy: **ONLY** recordings published by Michael J. Huddleston / The Inner Circle Trader qualify as strategy authority. Websites, transcription services, third-party ICT tutorials, AI descriptions, and model-name lore cannot establish any rule. Do not infer exact entry, stop, target, invalidation, time, pivot, or expiry rules. Do not run proxy backtests.
 
-## 1. ICT 2022 Mentorship
-Primary: https://www.youtube.com/watch?v=nQfHZ2DEJ8c (Episode 3; Jan 2022).
-Timestamped transcript: https://sozai.app/transcript/2022-ict-mentorship-episode-3/
-- 15m: locate old lows / equal highs and their sell-side / buy-side liquidity.
-- 2m: **after** liquidity raid, watch short-term swing high (bullish) / low (bearish) taken; **wick is sufficient**, no closing-price break required.
-- On next candle close, determine if three-candle fair value gap exists.
-- Example limit entry: opening price of contiguous down-close order-block candle series **within FVG**, plus applicable spread; bearish mirror requires source confirmation.
-- Draw on opposing buy-side/sell-side liquidity for profit objectives.
-- **Do not invent** 12-bar or 30-bar raid expiry, 1.5x displacement, 3-bar 15m pivot, automatic 50% FVG entry, or a fixed 24h exit. The lecture explicitly says a down-close candle is not automatically an order block.
-- Open items before code: exact structural stop in all example variants; competing FVG selection; opposing liquidity hierarchy; time-of-day applicability; ambiguous entry if OB open not inside FVG.
+| Requested model | Michael Huddleston original recording | Verified here | Still requiring direct original audio/chart review |
+|---|---|---|---|
+| 2022 Mentorship | https://www.youtube.com/watch?v=nQfHZ2DEJ8c | Official original episode title, URL | Full lecture audio, chart examples, all variants and stop/TP |
+| Unicorn | NOT IDENTIFIED | No source authenticated | Locate official original teaching; verify whether it is a standalone Huddleston model |
+| Breaker | https://www.youtube.com/watch?v=UrS-mtGHtAA | Original Month 04 Breaker Block recording title, URL | Definition, context, entry, stop, target, invalidation with timecodes |
+| OTE | https://www.youtube.com/watch?v=qC0LogyIk2I | Candidate original lesson (Equilibrium vs Discount) | Exact original OTE-specific entry, stop, target and whether it is a standalone model |
+| Silver Bullet | https://www.youtube.com/watch?v=tRq1hyGGtl4 | Original 2023 time-based model recording title, URL | Actual clock windows, prerequisites, entry, stop, TP, cancellation, DST |
+| Mitigation Block | https://www.youtube.com/watch?v=FOUzW0QmsfI | Candidate original Month 04 recording URL | Confirm channel metadata, inspect original chart/audio, entry, stop, target, invalidation |
+| OB Continuation | NOT IDENTIFIED | No source authenticated | Locate original recording; establish exact Huddleston model nomenclature |
 
-## 2. Unicorn
-Primary Michael J. Huddleston lecture with exact timestamps for overlap of breaker and FVG, entry, stop, TP, invalidation: **NOT YET VERIFIED**.
+## Findings from source access attempt, 2026-10-20
+Official YouTube pages for Episode 3, Breaker and Silver Bullet were reachable in search but their rendered HTML did **not** expose the lecture transcript. The Mitigation Block video URL could not be fetched by the web reader. Therefore a detailed rule purportedly quoted from any of these lessons **cannot be authenticated from this access alone**. A third-party site that links or paraphrases an original recording is not a primary source. Previous strategy summaries and all prior proxy performance numbers are excluded.
 
-## 3. Breaker
-Primary candidate: https://www.youtube.com/watch?v=UrS-mtGHtAA (ICT Mentorship Core Content Month 04, ICT Breaker Block). Exact lecture timestamps and executable rules: **NOT YET VERIFIED**.
+## Verification checklist for each model
+- [ ] Exact original channel/video and timestamps
+- [ ] Bullish/bearish market context and liquidity draw
+- [ ] Trigger and entry order price, timing, confirmation
+- [ ] Stop and invalidation, including pending order cancellation
+- [ ] Target selection and partial/full exit, if actually specified
+- [ ] Explicit treatment of ambiguities before deterministic coding
+- [ ] BTC/ETH/SOL 90-day 15m context / 2m execution study (a crypto extrapolation, not a claim of Huddleston trading crypto)
 
-## 4. OTE
-Primary original lecture and standalone setup vs entry technique status: **NOT YET VERIFIED**. Do not treat arbitrary 70.5% fib touch as a complete strategy.
-
-## 5. Silver Bullet
-Primary candidate: https://www.youtube.com/watch?v=tRq1hyGGtl4 (ICT Silver Bullet Time Based Trading Model). Exact time zone / DST, entry, stop, TP, invalidation: **NOT YET VERIFIED**. Do not treat FVG alone as Silver Bullet.
-
-## 6. Mitigation Block
-Primary original lecture and rules distinguishing mitigation from breaker/OB: **NOT YET VERIFIED**.
-
-## 7. Order Block Continuation
-Original naming and standalone model status; primary lecture with full entry/stop/target: **NOT YET VERIFIED**.
-
-## Execution protocol
-BTCUSDT, ETHUSDT, SOLUSDT, trailing 90 days; 15m context + 2m execution, where supported by the specific original lecture. Use only completed bars, no future swing confirmation, stop-first for intrabar OHLC collisions or 1m reconstruction. Record model, source timestamps, signal, fill, stop, TP, invalidation, fees, net R, unfilled and open positions. Never publish win rate for any model without a fully verified deterministic source rulebook.
-
-## Source caution
-Michael's examples are often discretionary and taught on Nasdaq futures; transposing to crypto is an explicit **research extrapolation**, not a claim he personally tested crypto.
-
-## Primary-source admissibility policy (2026-10-20)
-Search results titled 'ICT Breaker Block Trading Strategy' (Technical Analysis in Hindi, 2025-09-27) and 'ICT Mitigation Block Trading Strategy Explain' (Technical Analysis in Hindi, 2026-02-26) are **third-party summaries**. Neither is authored by Michael J. Huddleston. They are explicitly disallowed as sources for original-rule implementation. A model name alone is not an executable strategy: entry, stop, target, and invalidation must be traced to original lecture evidence.
+**No original seven-model backtest is authorized until the evidence is verified.**
