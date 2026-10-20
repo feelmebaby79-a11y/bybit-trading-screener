@@ -1,1 +1,1 @@
-refresh for daily scan 2026-10-13 08:52 KST
+manual realtime snapshot refresh 2026-10-20 11:05 KST; 96 shards; retry diagnostics
