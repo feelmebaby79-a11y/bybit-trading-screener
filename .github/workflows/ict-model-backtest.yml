@@ -32,6 +32,22 @@ jobs:
             done
             test -s "backtest_data/${s}.csv"
           done
+      - name: Download 1m execution candles for 2m resampling
+        shell: bash
+        run: |
+          set -euo pipefail
+          for s in BTCUSDT ETHUSDT SOLUSDT; do
+            : > "backtest_data/${s}_1m.csv"
+            for i in $(seq 0 95); do
+              d=$(date -u -d "-$i day" +%F)
+              u="https://data.binance.vision/data/futures/um/daily/klines/${s}/1m/${s}-1m-${d}.zip"
+              if curl --retry 2 --retry-delay 1 -fsSL "$u" -o /tmp/ict-1m.zip; then
+                unzip -p /tmp/ict-1m.zip >> "backtest_data/${s}_1m.csv"
+                printf '\n' >> "backtest_data/${s}_1m.csv"
+              fi
+            done
+            test -s "backtest_data/${s}_1m.csv"
+          done
       - name: Backtest ICT model proxies on Binance Vision proxy
         run: python ict_models_backtest.py
       - name: Save backtest outputs
