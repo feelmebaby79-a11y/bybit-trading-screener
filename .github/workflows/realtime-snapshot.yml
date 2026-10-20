@@ -36,7 +36,7 @@ jobs:
           python - <<'PY'
           import json, time, urllib.request
           from datetime import datetime, timezone
-          BASE='https://bybit-trading-screener.feelmebaby79.workers.dev'; SHARDS=3
+          BASE='https://bybit-trading-screener.feelmebaby79.workers.dev'; SHARDS=24
           def fetch_json(url):
               req=urllib.request.Request(url,headers={'Accept':'application/json','User-Agent':'realtime-shard-snapshot'})
               with urllib.request.urlopen(req,timeout=60) as r: return json.loads(r.read().decode('utf-8'))
@@ -48,7 +48,9 @@ jobs:
               parts=[]
               for shard in range(SHARDS):
                   p=fetch_json(f'{BASE}/{kind}?shard={shard}&shards={SHARDS}')
-                  if p.get('ok') is not True or int(p.get('error_count') or 0)!=0: raise RuntimeError(f'{kind} shard {shard} invalid')
+                  if p.get('ok') is not True or int(p.get('error_count') or 0)!=0:
+                      errors=[{'symbol':x.get('symbol'),'error':x.get('error')} for x in p.get('items',[]) if x.get('error')]
+                      raise RuntimeError(f'{kind} shard {shard} invalid: ok={p.get("ok")} error_count={p.get("error_count")} sample_errors={errors[:5]}')
                   parts.append(p)
               watch_times={p.get('watchlist_updated_at') for p in parts}
               if len(watch_times)!=1: raise RuntimeError(f'{kind}: inconsistent watchlist timestamps: {watch_times}')
