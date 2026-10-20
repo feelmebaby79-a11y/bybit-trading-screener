@@ -31,10 +31,28 @@ def load(sym):
  b=[d[k] for k in sorted(d)]
  if len(b)<8000:raise ValueError('insufficient history '+str(len(b)))
  return b
-def run(sym,b):
+def load_execution(sym):
+ path=f'backtest_data/{sym}_1m.csv'
+ if not os.path.exists(path):raise FileNotFoundError('Missing required 1m execution candles: '+path)
+ raw={}
+ with open(path) as fh:
+  for line in fh:
+   x=line.strip().split(',')
+   if len(x)<5 or not x[0].isdigit():continue
+   t=int(x[0]);
+   if START<=t<END:raw[t]=(float(x[1]),float(x[2]),float(x[3]),float(x[4]))
+ result=[]
+ for t in range(START,END,120000):
+  a=raw.get(t);z=raw.get(t+60000)
+  if a is not None and z is not None:result.append((t,a[0],max(a[1],z[1]),min(a[2],z[2]),z[3]))
+ if len(result)<50000:raise ValueError('insufficient 2m execution candles '+str(len(result)))
+ return result
+
+def run(sym,b,execution):
  # Research run: keep results explicitly labeled as approximations, not official ICT performance.
  # Five UNVERIFIED research proxies. Mitigation Block and OB Continuation disabled to prevent false ICT attribution.
- out=[]; n=len(b); used=set()
+ out=[]; n=len(b); used=set(); ex=execution; ex_t=[x[0] for x in ex]
+ import bisect
  def pivot(i,kind,span=3):
   if i<span*2:return False
   k=i-span
@@ -46,18 +64,20 @@ def run(sym,b):
   if key in used:return
   used.add(key)
   fill=None
-  for j in range(i+1,n):
-   if (b[j][3]<=sl if d==1 else b[j][2]>=sl):break
-   if b[j][3]<=entry<=b[j][2]:fill=j;break
+  # Signals use completed 15m bars; execution begins on the next 2m bar.
+  start=bisect.bisect_left(ex_t,b[i][0]+MS)
+  for j in range(start,len(ex)):
+   if (ex[j][3]<=sl if d==1 else ex[j][2]>=sl):break
+   if ex[j][3]<=entry<=ex[j][2]:fill=j;break
   if fill is None:return
   result=None
-  for j in range(fill+1,n):
-   stop=b[j][3]<=sl if d==1 else b[j][2]>=sl
-   target=b[j][2]>=tp if d==1 else b[j][3]<=tp
+  for j in range(fill+1,len(ex)):
+   stop=ex[j][3]<=sl if d==1 else ex[j][2]>=sl
+   target=ex[j][2]>=tp if d==1 else ex[j][3]<=tp
    if stop:result=-1;break
    if target:result=(tp-entry)*d/((entry-sl)*d);break
   if result is None:
-   result=(b[-1][4]-entry)*d/abs(entry-sl)
+   result=(ex[-1][4]-entry)*d/abs(entry-sl)
    status='OPEN_MARK_TO_MARKET'
   else:status='CLOSED'
   out.append(dict(symbol=sym,model=model,signal_utc=datetime.datetime.fromtimestamp(b[i][0]/1000,datetime.timezone.utc).isoformat(),side='LONG' if d==1 else 'SHORT',entry=round(entry,8),sl=round(sl,8),tp=round(tp,8),status=status,gross_r=round(result,5),net_r=round(result-.0012*entry/abs(entry-sl),5),reason=reason))
@@ -152,7 +172,7 @@ def main():
  trades=[];errors={}
  for sym in SYMS:
   try:
-   b=load(sym);print(sym,'candles',len(b),flush=True);trades+=run(sym,b)
+   b=load(sym);ex=load_execution(sym);print(sym,'15m candles',len(b),'2m candles',len(ex),flush=True);trades+=run(sym,b,ex)
   except Exception as e:errors[sym]=str(e);print('ERROR',sym,e,flush=True)
  groups=collections.defaultdict(list)
  for t in trades:
@@ -163,7 +183,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason','status']);w.writeheader();w.writerows(trades)
- report=dict(original_ict_verified=False,research_variant='Removed arbitrary 12-bar order expiry; official lesson-level validation incomplete',timeframe='15m',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage','Limit orders remain live until structural stop invalidation or dataset end; this is a modeling assumption, not a verified official ICT cancellation rule'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
+ report=dict(original_ict_verified=False,research_variant='Removed arbitrary 12-bar order expiry; official lesson-level validation incomplete',timeframe='15m signal, 2m execution',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m + 1m resampled to 2m, not Bybit',swing_pivot=3,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','3-bar pivots confirmed after 3 bars; signals 15m, fills and exits on 2m','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage','Limit orders remain live until structural stop invalidation or dataset end; this is a modeling assumption, not a verified official ICT cancellation rule'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
