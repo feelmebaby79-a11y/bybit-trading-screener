@@ -50,7 +50,7 @@ def load_execution(sym):
 
 def run(sym,b,execution):
  # Research run: keep results explicitly labeled as approximations, not official ICT performance.
- # Five UNVERIFIED research proxies. Mitigation Block and OB Continuation disabled to prevent false ICT attribution.
+ # Seven RESEARCH interpretations; original ICT source-level verification is still incomplete.
  out=[]; n=len(b); used=set(); ex=execution; ex_t=[x[0] for x in ex]
  import bisect
  def pivot(i,kind,span=3):
@@ -169,11 +169,43 @@ def run(sym,b,execution):
     sl=min(x[3] for x in b[i-8:i+1]) if d==1 else max(x[2] for x in b[i-8:i+1])
     target=next((v for _,v in reversed(highs if d==1 else lows) if (v>entry if d==1 else v<entry)),None)
     if target is not None:submit('SILVER_BULLET',i,d,entry,sl,target,'NY_window_displacement_FVG_to_liquidity')
-  # IMPORTANT: A simple return to an intact order block is NOT sufficient
-  # to establish an ICT mitigation block. Suppress false model labels until
-  # the original failed-swing / market-structure sequence is implemented.
-  # Likewise, 'OB Continuation' is not established here as an independently
-  # source-verified Michael Huddleston model. Never generate fake signals.
+  # Mitigation research implementation: failed swing without a liquidity raid,
+  # followed by a displacement-led shift, then return to last opposing candle.
+  # This is a deterministic interpretation; NOT officially verified verbatim.
+  if displacement and len(highs)>1 and len(lows)>1:
+   for md in (1,-1):
+    if d!=md:continue
+    last_two=(lows[-2:] if md==1 else highs[-2:])
+    if len(last_two)<2:continue
+    older,newer=last_two
+    # Bullish: higher low (failed sell-side raid) + upside shift.
+    # Bearish: lower high (failed buy-side raid) + downside shift.
+    failed=(newer[1]>older[1]) if md==1 else (newer[1]<older[1])
+    if not failed or i-newer[0]>16:continue
+    opposing=(highs[-1][1] if md==1 else lows[-1][1])
+    shifted=(c>opposing if md==1 else c<opposing)
+    if not shifted:continue
+    opp=next((b[k] for k in range(i-1,max(0,i-9),-1) if (b[k][4]<b[k][1] if md==1 else b[k][4]>b[k][1])),None)
+    if opp is None:continue
+    entry=(opp[2]+opp[3])/2
+    sl=min(newer[1],opp[3]) if md==1 else max(newer[1],opp[2])
+    pool=next((v for _,v in reversed(highs if md==1 else lows) if (v>entry if md==1 else v<entry)),None)
+    if pool is not None:submit('MITIGATION_BLOCK',i,md,entry,sl,pool,'failed_swing_MSS_last_opposing_candle_retest_RESEARCH')
+  # OB continuation research implementation: displacement through a confirmed
+  # swing in the direction of the most recent structural swing, then OB retest.
+  # The standalone model name is not yet established in the official lectures.
+  if displacement:
+   for formed,od,bot,top,broken in obs[-20:]:
+    if broken or formed!=i:continue
+    pts=sorted([(k,v,'H') for k,v in highs]+[(k,v,'L') for k,v in lows])
+    if len(pts)<2:continue
+    p2=pts[-1];p1=next((x for x in reversed(pts[:-1]) if x[2]!=p2[2]),None)
+    if p1 is None:continue
+    if od==1 and not(p1[2]=='L' and p2[2]=='H'):continue
+    if od==-1 and not(p1[2]=='H' and p2[2]=='L'):continue
+    entry=(bot+top)/2;sl=bot if od==1 else top
+    pool=next((v for _,v in reversed(highs if od==1 else lows) if (v>entry if od==1 else v<entry)),None)
+    if pool is not None:submit('OB_CONTINUATION',i,od,entry,sl,pool,'displacement_swing_break_OB_retest_RESEARCH')
  return out
 def main():
  trades=[];errors={}
@@ -190,7 +222,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason','status']);w.writeheader();w.writerows(trades)
- report=dict(original_ict_verified=False,research_variant='Removed arbitrary 12-bar order expiry; official lesson-level validation incomplete',timeframe='15m signal, 2m execution',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m + 1m resampled to 2m, not Bybit',swing_pivot=3,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','3-bar pivots confirmed after 3 bars; signals 15m, fills and exits on 2m','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage','Limit orders remain live until structural stop invalidation or dataset end; this is a modeling assumption, not a verified official ICT cancellation rule'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
+ report=dict(original_ict_verified=False,research_variant='Seven independently defined research interpretations; not official ICT verified',timeframe='15m signal, 2m execution',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m + 1m resampled to 2m, not Bybit',swing_pivot=3,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','3-bar pivots confirmed after 3 bars; signals 15m, fills and exits on 2m','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage','Limit orders remain live until structural stop invalidation or dataset end; this is a modeling assumption, not a verified official ICT cancellation rule'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
