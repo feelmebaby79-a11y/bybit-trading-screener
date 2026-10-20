@@ -263,6 +263,9 @@ def run(sym,b,execution):
   out.append(dict(symbol=sym,model='ICT_2022',signal_utc=datetime.datetime.fromtimestamp(t/1000,datetime.timezone.utc).isoformat(),side='LONG' if rd==1 else 'SHORT',entry=round(entry,8),sl=round(sl,8),tp=round(tp,8),status=status,gross_r=round(result,5),net_r=round(result-.0012*entry/abs(entry-sl),5),reason='2022_episode3_15m_liquidity_2m_wick_MSS_FVG_OB_open_source_based_study'))
  return out
 def main():
+ # Fail closed: do not execute or publish fabricated original ICT model results.
+ # Existing model generators below are unverified interpretations and disabled.
+ raise RuntimeError("BLOCKED: Seven ICT models have not been validated against Michael J. Huddleston original lessons. Do not run proxy models or publish their performance as original ICT.")
  trades=[];errors={}
  for sym in SYMS:
   try:
