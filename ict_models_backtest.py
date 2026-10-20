@@ -31,9 +31,12 @@ def load(sym):
  if len(b)<18000:raise ValueError('insufficient history '+str(len(b)))
  return b
 def run(sym,b):
- out=[]; events=[]; used=set(); high=None;low=None
+ out=[]; events=[]; used=set(); high=None;low=None; htf_ema=None
  for i in range(110,len(b)-290):
   t,o,h,l,c=b[i]; side=1 if c>o else -1
+  if i%12==11:
+   htf_ema=c if htf_ema is None else htf_ema+(2/51)*(c-htf_ema)
+  if htf_ema is None:continue
   if i>=100:
    k=i-50;window=b[k-50:i+1]
    if b[k][2]==max(x[2] for x in window):high=b[k][2]
@@ -43,6 +46,10 @@ def run(sym,b):
   events=[e for e in events if i-e[0]<=24]
   avg=sum(abs(x[4]-x[1]) for x in b[i-20:i])/20
   if abs(c-o)<avg*1.5 or abs(c-o)/max(h-l,1e-9)<.6:continue
+  if (c-htf_ema)*side<=0:continue
+  recent=b[i-99:i+1]; rh=max(x[2] for x in recent);rl=min(x[3] for x in recent)
+  if side==1 and b[i-1][4]>(rh+rl)/2:continue
+  if side==-1 and b[i-1][4]<(rh+rl)/2:continue
   for sw,d,ext in events:
    if sw>=i or d!=side:continue
    if d==1 and c<=max(x[2] for x in b[sw:i]):continue
@@ -90,7 +97,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r']);w.writeheader();w.writerows(trades)
- report=dict(created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 5m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,limitations=['ICT-inspired proxy, not exact LuxAlgo source','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),stats=stats)
+ report=dict(created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 5m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['1H EMA50 direction proxy','100-bar dealing-range half discount/premium','first FVG retest within 12 bars'],limitations=['ICT-inspired proxy, not exact LuxAlgo source','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
