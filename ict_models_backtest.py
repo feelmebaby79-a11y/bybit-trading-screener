@@ -33,7 +33,7 @@ def load(sym):
  return b
 def run(sym,b):
  # Research run: keep results explicitly labeled as approximations, not official ICT performance.
- # Seven independently triggered ICT concept models. 15m candles; no arbitrary holding-time exit. Not verified verbatim ICT rules.
+ # Five UNVERIFIED research proxies. Mitigation Block and OB Continuation disabled to prevent false ICT attribution.
  out=[]; n=len(b); used=set()
  def pivot(i,kind,span=3):
   if i<span*2:return False
@@ -142,19 +142,11 @@ def run(sym,b):
     sl=min(x[3] for x in b[i-8:i+1]) if d==1 else max(x[2] for x in b[i-8:i+1])
     target=next((v for _,v in reversed(highs if d==1 else lows) if (v>entry if d==1 else v<entry)),None)
     if target is not None:submit('SILVER_BULLET',i,d,entry,sl,target,'NY_window_displacement_FVG_to_liquidity')
-  # Mitigation block: return to unbroken OB after displacement, structural stop.
-  for formed,od,bot,top,broken in obs[-20:]:
-   if broken or i<=formed or i-formed>36 or not(l<=top and h>=bot):continue
-   entry=(bot+top)/2;sl=bot if od==1 else top
-   target=next((v for _,v in reversed(highs if od==1 else lows) if (v>entry if od==1 else v<entry)),None)
-   if target is not None:submit('MITIGATION_BLOCK',i,od,entry,sl,target,'return_to_unbroken_OB_to_liquidity')
-  # OB continuation: pullback to intact OB in same swing-break direction.
-  for formed,od,bot,top,broken in obs[-20:]:
-   if broken or i<=formed or i-formed>18:continue
-   if not (l<=top and h>=bot):continue
-   entry=(bot+top)/2;sl=bot if od==1 else top
-   target=next((v for _,v in reversed(highs if od==1 else lows) if (v>entry if od==1 else v<entry)),None)
-   if target is not None:submit('OB_CONTINUATION',i,od,entry,sl,target,'swing_break_OB_retest_to_liquidity')
+  # IMPORTANT: A simple return to an intact order block is NOT sufficient
+  # to establish an ICT mitigation block. Suppress false model labels until
+  # the original failed-swing / market-structure sequence is implemented.
+  # Likewise, 'OB Continuation' is not established here as an independently
+  # source-verified Michael Huddleston model. Never generate fake signals.
  return out
 def main():
  trades=[];errors={}
