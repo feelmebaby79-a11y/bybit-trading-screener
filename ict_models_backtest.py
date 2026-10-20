@@ -93,7 +93,7 @@ def run(sym,b):
     broken=True
    newobs.append((formed,od,bot,top,broken))
   obs=newobs;breakers=[x for x in breakers if i-x[0]<=48]
-  # ICT 2022 research variant: NY morning raid -> displacement -> FVG. NOT official-verified.
+  # ICT 2022 proxy: 15m entry is NOT the lecture's 2m execution; never label original.
   for si,sd,ext in sweeps:
    if sd!=d or not displacement or i<=si or i-si>12 or not (ny.hour in (9,10,11)):continue
    structure=max(x[2] for x in b[si:i]) if d==1 else min(x[3] for x in b[si:i])
@@ -103,14 +103,14 @@ def run(sym,b):
    entry=(fresh[2]+fresh[3])/2
    pool=next((v for _,v in reversed(highs if d==1 else lows) if (v>entry if d==1 else v<entry)),None)
    if pool is not None:submit('ICT_2022',i,d,entry,ext,pool,'raid_MSS_FVG_to_opposing_liquidity')
-  # Breaker: failed opposing OB, retest of its price zone; structural invalidation and swing target.
+  # Research-only breaker approximation; NOT an official source-validated ICT model.
   for bi,bd,bot,top in breakers:
    if i<=bi or i-bi>24:continue
    if not (l<=top and h>=bot):continue
    entry=(bot+top)/2;sl=bot if bd==1 else top
    target=next((v for _,v in reversed(highs if bd==1 else lows) if (v>entry if bd==1 else v<entry)),None)
    if target is not None:submit('BREAKER',i,bd,entry,sl,target,'invalidated_OB_retest_to_liquidity')
-  # Unicorn: overlap of confirmed breaker zone and same-direction FVG.
+  # Research-only unicorn approximation; NOT an official source-validated ICT model.
   for bi,bd,bot,top in breakers:
    if i-bi>24:continue
    for fi,fd,lo,hi in fvgs:
@@ -120,7 +120,7 @@ def run(sym,b):
     entry=(a+z)/2;sl=bot if bd==1 else top
     target=next((v for _,v in reversed(highs if bd==1 else lows) if (v>entry if bd==1 else v<entry)),None)
     if target is not None:submit('UNICORN',i,bd,entry,sl,target,'breaker_FVG_overlap_to_liquidity')
-  # OTE: retracement to 62-79% of an independently identified completed swing.
+  # OTE is an entry location, not a self-sufficient verified standalone trading model.
   for direction in (1,-1):
    pts=sorted([(k,v,'H') for k,v in highs]+[(k,v,'L') for k,v in lows])
    if len(pts)<2:continue
@@ -134,7 +134,7 @@ def run(sym,b):
    entry=p2[1]-direction*.705*length;sl=p1[1]
    target=p2[1]
    if (l<=entry<=h):submit('OTE',i,direction,entry,sl,target,'confirmed_swing_70.5pct_retracement')
-  # Silver Bullet: NY 10-11 or 14-15, session displacement FVG, nearest opposing liquidity.
+  # Silver Bullet proxy: missing verified full ICT context, not original model.
   if ny.hour in (3,10,14) and displacement:
    fresh=next((x for x in fvgs[::-1] if x[0]==i and x[1]==d),None)
    if fresh:
