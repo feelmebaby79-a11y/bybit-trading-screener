@@ -97,7 +97,7 @@ def run(sym,b):
   for si,sd,ext in sweeps:
    if sd!=d or not displacement or i<=si or i-si>12 or not (ny.hour in (9,10,11)):continue
    structure=max(x[2] for x in b[si:i]) if d==1 else min(x[3] for x in b[si:i])
-   if (c<=structure if d==1 else c>=structure):continue
+   if (h<=structure if d==1 else l>=structure):continue
    fresh=next((x for x in fvgs[::-1] if x[0]==i and x[1]==d),None)
    if not fresh:continue
    entry=(fresh[2]+fresh[3])/2
@@ -135,7 +135,7 @@ def run(sym,b):
    target=p2[1]
    if (l<=entry<=h):submit('OTE',i,direction,entry,sl,target,'confirmed_swing_70.5pct_retracement')
   # Silver Bullet: NY 10-11 or 14-15, session displacement FVG, nearest opposing liquidity.
-  if ny.hour in (10,14) and displacement:
+  if ny.hour in (3,10,14) and displacement:
    fresh=next((x for x in fvgs[::-1] if x[0]==i and x[1]==d),None)
    if fresh:
     entry=(fresh[2]+fresh[3])/2
@@ -171,7 +171,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason','status']);w.writeheader();w.writerows(trades)
- report=dict(original_ict_verified=False,research_variant='NY morning ICT2022; other six unverified proxy models',timeframe='15m',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
+ report=dict(original_ict_verified=False,research_variant='2022 wick-based MSS; Silver Bullet London/NY windows; remaining original-source validation incomplete',timeframe='15m',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m proxy, not Bybit',swing_pivot=50,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','No lookahead; 50-bar pivots confirmed after 50 bars','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
