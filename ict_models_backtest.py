@@ -120,16 +120,7 @@ def run(sym,b,execution):
     broken=True
    newobs.append((formed,od,bot,top,broken))
   obs=newobs;breakers=[x for x in breakers if i-x[0]<=48]
-  # ICT 2022 proxy: 15m entry is NOT the lecture's 2m execution; never label original.
-  for si,sd,ext in sweeps:
-   if sd!=d or not displacement or i<=si or i-si>12 or not (ny.hour in (9,10,11)):continue
-   structure=max(x[2] for x in b[si:i]) if d==1 else min(x[3] for x in b[si:i])
-   if (h<=structure if d==1 else l>=structure):continue
-   fresh=next((x for x in fvgs[::-1] if x[0]==i and x[1]==d),None)
-   if not fresh:continue
-   entry=(fresh[2]+fresh[3])/2
-   pool=next((v for _,v in reversed(highs if d==1 else lows) if (v>entry if d==1 else v<entry)),None)
-   if pool is not None:submit('ICT_2022',i,d,entry,ext,pool,'raid_MSS_FVG_to_opposing_liquidity')
+  # ICT 2022 signals are evaluated on 2m bars below, not on 15m bars.
   # Research-only breaker approximation; NOT an official source-validated ICT model.
   for bi,bd,bot,top in breakers:
    if i<=bi or i-bi>24:continue
@@ -206,6 +197,70 @@ def run(sym,b,execution):
     entry=(bot+top)/2;sl=bot if od==1 else top
     pool=next((v for _,v in reversed(highs if od==1 else lows) if (v>entry if od==1 else v<entry)),None)
     if pool is not None:submit('OB_CONTINUATION',i,od,entry,sl,pool,'displacement_swing_break_OB_retest_RESEARCH')
+ # Source-traceable 2022 Episode 3 execution study (2m):
+ # 15m old highs/lows -> liquidity raid -> 2m short-term MSS (wick is enough)
+ # -> next confirmed three-candle FVG -> opposing candle-series open as limit.
+ # https://www.youtube.com/watch?v=nQfHZ2DEJ8c
+ # Some objective choices (swing equality tolerance, which old high/low)
+ # are NOT specified universally by the lecture. Results are not official.
+ hi15=[];lo15=[];hidx=0;last_raid=None;last_mss=None;last_signal=-1
+ for k in range(4,len(ex)-1):
+  t,o,h,l,cl=ex[k]
+  while hidx<len(b) and b[hidx][0]+MS<=t:
+   if hidx>=6:
+    j=hidx-3
+    if b[j][2]==max(x[2] for x in b[j-3:hidx+1]):hi15.append((b[j][0],b[j][2]))
+    if b[j][3]==min(x[3] for x in b[j-3:hidx+1]):lo15.append((b[j][0],b[j][3]))
+   hidx+=1
+  hi15=hi15[-40:];lo15=lo15[-40:]
+  if not hi15 or not lo15:continue
+  prev=ex[k-1]
+  # Detect the first crossing of a previously confirmed 15m liquidity level.
+  raid_bull=next((v for _,v in reversed(lo15) if l<v and prev[3]>=v),None)
+  raid_bear=next((v for _,v in reversed(hi15) if h>v and prev[2]<=v),None)
+  if raid_bull is not None:last_raid=(k,1,l)
+  elif raid_bear is not None:last_raid=(k,-1,h)
+  if last_raid is None or k-last_raid[0]>30:continue
+  ri,rd,ext=last_raid
+  if k<=ri:continue
+  # 3-candle short-term swing confirmed by one candle on either side.
+  recent=ex[max(1,ri-12):k]
+  if len(recent)<3:continue
+  if rd==1:
+   swings=[x[2] for p,x in enumerate(recent[1:-1],1) if x[2]>recent[p-1][2] and x[2]>recent[p+1][2]]
+   shifted=bool(swings) and h>swings[-1]
+  else:
+   swings=[x[3] for p,x in enumerate(recent[1:-1],1) if x[3]<recent[p-1][3] and x[3]<recent[p+1][3]]
+   shifted=bool(swings) and l<swings[-1]
+  if shifted and (last_mss is None or last_mss[0]<ri):last_mss=(k,rd,ext)
+  if last_mss is None or last_mss[1]!=rd or k-last_mss[0]>8:continue
+  if k<last_mss[0]+1 or last_signal==last_mss[0]:continue
+  # FVG must be known on completed 2m candle.
+  gap=(ex[k-2][2],l) if rd==1 and l>ex[k-2][2] else ((h,ex[k-2][3]) if rd==-1 and h<ex[k-2][3] else None)
+  if gap is None:continue
+  opp=[ex[q] for q in range(k-1,max(0,k-10),-1) if (ex[q][4]<ex[q][1] if rd==1 else ex[q][4]>ex[q][1])]
+  if not opp:continue
+  # ICT mentions opening price of the down-close candle series within FVG.
+  entry=next((x[1] for x in opp if gap[0]<=x[1]<=gap[1]),None)
+  if entry is None:continue
+  sl=ext
+  tp=next((v for _,v in reversed(hi15 if rd==1 else lo15) if (v>entry if rd==1 else v<entry)),None)
+  if tp is None or (entry-sl)*rd<=0 or (tp-entry)*rd<=0:continue
+  last_signal=last_mss[0]
+  fill=None
+  for q in range(k+1,len(ex)):
+   if (ex[q][3]<=sl if rd==1 else ex[q][2]>=sl):break
+   if ex[q][3]<=entry<=ex[q][2]:fill=q;break
+  if fill is None:continue
+  result=None
+  for q in range(fill,len(ex)):
+   stop=(ex[q][3]<=sl if rd==1 else ex[q][2]>=sl)
+   target=(ex[q][2]>=tp if rd==1 else ex[q][3]<=tp)
+   if stop:result=-1;break
+   if target:result=abs(tp-entry)/abs(entry-sl);break
+  status='CLOSED' if result is not None else 'OPEN_MARK_TO_MARKET'
+  if result is None:result=(ex[-1][4]-entry)*rd/abs(entry-sl)
+  out.append(dict(symbol=sym,model='ICT_2022',signal_utc=datetime.datetime.fromtimestamp(t/1000,datetime.timezone.utc).isoformat(),side='LONG' if rd==1 else 'SHORT',entry=round(entry,8),sl=round(sl,8),tp=round(tp,8),status=status,gross_r=round(result,5),net_r=round(result-.0012*entry/abs(entry-sl),5),reason='2022_episode3_15m_liquidity_2m_wick_MSS_FVG_OB_open_source_based_study'))
  return out
 def main():
  trades=[];errors={}
@@ -222,7 +277,7 @@ def main():
  os.makedirs('backtest_results',exist_ok=True)
  with open('backtest_results/trades.csv','w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=['symbol','model','signal_utc','side','entry','sl','tp','gross_r','net_r','reason','status']);w.writeheader();w.writerows(trades)
- report=dict(original_ict_verified=False,research_variant='Seven independently defined research interpretations; not official ICT verified',timeframe='15m signal, 2m execution',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m + 1m resampled to 2m, not Bybit',swing_pivot=3,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','3-bar pivots confirmed after 3 bars; signals 15m, fills and exits on 2m','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage','Limit orders remain live until structural stop invalidation or dataset end; this is a modeling assumption, not a verified official ICT cancellation rule'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
+ report=dict(original_ict_verified=False,research_variant='ICT 2022 Episode 3 source-based 2m execution study; six other research interpretations remain unverified',timeframe='15m signal, 2m execution',open_positions=sum(t['status']=='OPEN_MARK_TO_MARKET' for t in trades),created_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),period_days=90,source='Binance Vision USD-M futures 15m + 1m resampled to 2m, not Bybit',swing_pivot=3,roundtrip_fee=.0012,filters=['Independent model triggers; structural stops; opposing swing liquidity targets'],limitations=['ICT concept interpretation, NOT verified verbatim against all original Inner Circle Trader lessons','3-bar pivots confirmed after 3 bars; signals 15m, fills and exits on 2m','Stop-first intrabar ambiguity','Overlapping trades counted independently','No funding or slippage','Limit orders remain live until structural stop invalidation or dataset end; this is a modeling assumption, not a verified official ICT cancellation rule'],errors=errors,total_trades=len(trades),closed_trades=sum(t['status']=='CLOSED' for t in trades),stats=stats)
  with open('backtest_results/report.json','w') as f:json.dump(report,f,indent=2)
  print('RESULT',json.dumps(report),flush=True)
  if errors or not trades:raise SystemExit(1)
