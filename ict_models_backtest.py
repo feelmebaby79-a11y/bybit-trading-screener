@@ -42,7 +42,7 @@ def load_execution(sym):
    t=int(x[0]);
    if START<=t<END:raw[t]=(float(x[1]),float(x[2]),float(x[3]),float(x[4]))
  result=[]
- for t in range(START,END,120000):
+ for t in range((START//120000)*120000,END,120000):
   a=raw.get(t);z=raw.get(t+60000)
   if a is not None and z is not None:result.append((t,a[0],max(a[1],z[1]),min(a[2],z[2]),z[3]))
  if len(result)<50000:raise ValueError('insufficient 2m execution candles '+str(len(result)))
