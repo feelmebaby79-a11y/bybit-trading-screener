@@ -1,5 +1,6 @@
 import json,urllib.request,time,datetime,collections,os,csv
 from zoneinfo import ZoneInfo
+ICT_ORIGINAL_VERIFIED=False  # Do not label the proxy backtest as an original-ICT replication.
 SYMS=['BTCUSDT','ETHUSDT','SOLUSDT']; MS=900000; END=int(time.time()*1000)//MS*MS; START=END-90*86400000
 def load(sym):
  d={}
@@ -31,6 +32,8 @@ def load(sym):
  if len(b)<8000:raise ValueError('insufficient history '+str(len(b)))
  return b
 def run(sym,b):
+ if not ICT_ORIGINAL_VERIFIED:
+  raise RuntimeError('Original ICT lesson-by-lesson rules are not verified. Proxy simulation disabled to prevent misleading results.')
  # Seven independently triggered ICT concept models. 15m candles; no arbitrary holding-time exit. Not verified verbatim ICT rules.
  out=[]; n=len(b); used=set()
  def pivot(i,kind,span=3):
