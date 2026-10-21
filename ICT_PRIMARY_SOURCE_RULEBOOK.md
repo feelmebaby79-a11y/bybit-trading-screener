@@ -57,3 +57,22 @@ Evidence status: one primary lecture's spoken entry sequence is available in an 
 | Order Block Continuation | Not yet verified on official channel | **Unverified**; needs official lecture identification |
 
 Verification means source ownership, not proof of precise entry/SL/TP. No backtest trades may be labelled as official until full deterministic definitions and modelling assumptions are separately recorded.
+
+## Chartbro secondary video source — user-authorized 2026-10-21
+Priority: ICT official lectures/sites/courses > Chartbro @chartbro; Chartbro fills gaps only and does not override conflicting official ICT definitions. Clearly tag provenance in implementation.
+
+Video verified: https://www.youtube.com/watch?v=VrE4qlFATeA (Chartbro, 'This Is Not a Chart Pattern [PD Array Masterclass]', 2024-03-08). **Video description itself** includes definitions and chapter timestamps: 00:37 old high/low, 02:13 order block, 05:09 FVG, 08:42 mitigation block, 10:49 breaker. Description defines bullish mitigation as a bullish candle before a decline, with subsequent rally **without taking previous low**; bullish breaker as bullish candle before a decline with rally **after sweeping previous low**. Bearish mirrors described similarly. This is a concrete distinction suitable for comparing with ICT official lessons, not automatically endorsed by ICT.
+
+Additional Chartbro video: https://www.youtube.com/watch?v=0h9lpMUBSlE ('The Most Reliable Way to Identify Price Reversals [CISD]', 2024-02-16). Description defines CISD and bullish breaker, and highlights the distinction between reversal delivery shift and liquidity sweep.
+
+| Requested model | Current additional Chartbro evidence | Next rule check |
+|---|---|---|
+| ICT 2022 Mentorship | Old high/low, FVG, MSS glossary in PD Array masterclass | Preserve original 2022 lecture precedence |
+| Unicorn | No direct Chartbro explanation verified yet | Need primary or Chartbro breaker+FVG setup and explicit execution rules |
+| Breaker Block | PD Array masterclass 10:49; detailed definition in video description | Validate sweep, failed swing, breaker candle, retest against ICT Month 04 |
+| OTE | EQ 50% defined in PD Array masterclass description, not complete OTE | Need Fibonacci retracement bounds from actual lecture |
+| Silver Bullet | No direct Chartbro rule verified yet | Need official 2023 Silver Bullet timing and entry/exit |
+| Mitigation Block | PD Array masterclass 08:42; detailed definition in description | Validate **no sweep** versus ICT Month 04 |
+| Order Block Continuation | PD Array masterclass 02:13 OB definition | Need explicit continuation setup and exit rules |
+
+**Important:** A source's descriptive glossary is not a complete algorithm; no fixed stops, take-profits or expiry have been established by these descriptions alone.
