@@ -6,10 +6,10 @@ on:
       - 'realtime-trigger.txt'
   workflow_dispatch:
   workflow_run:
-    workflows: ["Bybit HTF LTF Scan"]
+    workflows: ["Bybit HTF LTF Scan", "Realtime Watch Health Check"]
     types: [completed]
   schedule:
-    # GitHub scheduled runs are best-effort and can be delayed or dropped.
+    # Best-effort schedule; the hourly health-check completion is a secondary trigger.
     - cron: '2,7,12,17,22,27,32,37,42,47,52,57 * * * *'
 
 permissions:
