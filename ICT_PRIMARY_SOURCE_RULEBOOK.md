@@ -1,6 +1,6 @@
 # Original Michael J. Huddleston source register — seven requested models
 
-Policy: **ONLY** recordings published by Michael J. Huddleston / The Inner Circle Trader qualify as strategy authority. Websites, transcription services, third-party ICT tutorials, AI descriptions, and model-name lore cannot establish any rule. Do not infer exact entry, stop, target, invalidation, time, pivot, or expiry rules. Do not run proxy backtests.
+Policy (user clarified 2026-10-21): Accept material **published or expressly endorsed on Michael J. Huddleston's official YouTube channel, official websites, or official courses**, including statements by other speakers appearing in those official channels. Do NOT require that Michael personally speak every rule. Third-party channels, unofficial translations and unauthenticated transcripts remain excluded unless the official source explicitly endorses the particular material. Preserve source video/page, speaker, and timestamp.
 
 | Requested model | Michael Huddleston original recording | Verified here | Still requiring direct original audio/chart review |
 |---|---|---|---|
@@ -25,3 +25,6 @@ Official YouTube pages for Episode 3, Breaker and Silver Bullet were reachable i
 - [ ] BTC/ETH/SOL 90-day 15m context / 2m execution study (a crypto extrapolation, not a claim of Huddleston trading crypto)
 
 **No original seven-model backtest is authorized until the evidence is verified.**
+
+## Actual transcript retrieval outcome — 2026-10-21
+GitHub run https://github.com/feelmebaby79-a11y/bybit-trading-screener/actions/runs/39542348684 reported **workflow success**, but all five YouTube caption requests returned **IP blocked** errors. Its artifact contains only a failure manifest, not transcripts. This is not successful primary-source collection. Do not infer model rules from that artifact. Alternative evidence acquisition must use officially hosted text, official course documents, or a legitimate non-blocked original-caption source; do not mislabel a third-party interpretation as official.
