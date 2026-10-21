@@ -44,3 +44,16 @@ Lecture-derived conditions (not an invented strategy):
 - The speaker explicitly says he does **not co-sign cryptocurrency market efficacy**; BTC/ETH/SOL results would be independent empirical validation, not an ICT-endorsed crypto claim.
 
 Evidence status: one primary lecture's spoken entry sequence is available in an indexed verbatim transcript mirror; six other models are not yet verified. This is **not** authorization to label seven models complete.
+
+## Seven-model source matrix (2026-10-21)
+| Model | Official-channel source | Status |
+|---|---|---|
+| 2022 Mentorship | https://www.youtube.com/watch?v=nQfHZ2DEJ8c | Entry sequence partially extracted; stops not verified |
+| Unicorn | Not yet verified on official channel | **Unverified**; popular third-party descriptions are not authoritative |
+| Breaker Block | https://www.youtube.com/watch?v=UrS-mtGHtAA | Official lecture candidate; speech and rules pending validation |
+| OTE | https://www.youtube.com/watch?v=qC0LogyIk2I | Official equilibrium/discount lecture candidate, NOT proof of full OTE rules |
+| Silver Bullet | https://www.youtube.com/watch?v=tRq1hyGGtl4 | **Verified official-channel publication** (2023 ICT Mentorship); trade rules pending |
+| Mitigation Block | https://www.youtube.com/watch?v=FOUzW0QmsfI | **Verified official-channel publication**; description states 2016 premium course original audio/visuals; trade rules pending |
+| Order Block Continuation | Not yet verified on official channel | **Unverified**; needs official lecture identification |
+
+Verification means source ownership, not proof of precise entry/SL/TP. No backtest trades may be labelled as official until full deterministic definitions and modelling assumptions are separately recorded.
