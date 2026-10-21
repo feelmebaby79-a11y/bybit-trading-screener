@@ -28,3 +28,19 @@ Official YouTube pages for Episode 3, Breaker and Silver Bullet were reachable i
 
 ## Actual transcript retrieval outcome — 2026-10-21
 GitHub run https://github.com/feelmebaby79-a11y/bybit-trading-screener/actions/runs/39542348684 reported **workflow success**, but all five YouTube caption requests returned **IP blocked** errors. Its artifact contains only a failure manifest, not transcripts. This is not successful primary-source collection. Do not infer model rules from that artifact. Alternative evidence acquisition must use officially hosted text, official course documents, or a legitimate non-blocked original-caption source; do not mislabel a third-party interpretation as official.
+
+## Verified lecture speech: 2022 Mentorship Episode 3 (original video nQfHZ2DEJ8c)
+Primary video: https://www.youtube.com/watch?v=nQfHZ2DEJ8c
+Verbatim transcript mirrors of this *same original official-channel video* (not separate strategy authorities): https://youtubetotranscript.com/transcript?current_language_code=en&v=nQfHZ2DEJ8c and https://sozai.app/transcript/2022-ict-mentorship-episode-3/ . Mirror text must be cross-checked against the official video when feasible.
+
+Lecture-derived conditions (not an invented strategy):
+- Identify old low / sell stops and relative equal highs / buy stops on 15-minute chart.
+- Wait for price to raid sell stops under the old low (bullish context) or buy stops above prior highs (bearish context); do not anticipate MSS before it occurs.
+- On 2-minute chart after a sell-side raid, a recent short-term swing high is taken; **a close beyond swing is not required**. In bearish mirror, recent short-term swing low is taken after buy-side raid.
+- After the break candle closes, inspect following candle's close for a 3-candle fair value gap. An entry is considered on subsequent retracement into that FVG, not blindly on the raid.
+- A consecutive down-close candle series in sell-stop raid region can constitute bullish order block. Its **opening price**, if within FVG, is an example of a limit buy price. Mirror up-close series for bearish OB.
+- Target buy-side liquidity above prior highs (bullish) or sell-side liquidity below lows and opposing imbalance (bearish); lecture describes taking partials at intermediate levels and choosing the nearer realistic objective.
+- **NOT specified mechanically by this excerpt:** fixed swing lookback, maximum delay after raid, FVG minimum size, stop price, maximum holding period, tie handling, position sizing, objective exact selection. These require additional official source evidence or explicitly labelled backtest assumptions; do not attribute such parameters to ICT.
+- The speaker explicitly says he does **not co-sign cryptocurrency market efficacy**; BTC/ETH/SOL results would be independent empirical validation, not an ICT-endorsed crypto claim.
+
+Evidence status: one primary lecture's spoken entry sequence is available in an indexed verbatim transcript mirror; six other models are not yet verified. This is **not** authorization to label seven models complete.
