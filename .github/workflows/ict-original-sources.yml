@@ -1,0 +1,28 @@
+name: Retrieve original ICT lesson transcripts
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['retrieve_original_ict.py', '.github/workflows/ict-original-sources.yml']
+permissions:
+  contents: read
+jobs:
+  original-transcripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install caption retrieval client
+        run: pip install youtube-transcript-api==1.2.3
+      - name: Retrieve timestamped transcripts from original video IDs
+        run: python retrieve_original_ict.py
+      - name: Save source transcript evidence and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-ict-lesson-transcripts
+          path: original_ict_transcripts/
+          if-no-files-found: warn
