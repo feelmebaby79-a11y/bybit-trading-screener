@@ -1,2 +1,4 @@
 Manual recovery trigger 2026-10-20 12:46 KST; verify recurring snapshot scheduler and data freshness.
 Recovery trigger requested 2026-10-21 18:19 KST; validate snapshot generation and freshness.
+
+Recovery validation trigger: 2026-10-22 11:08 KST after health-check condition fix.
