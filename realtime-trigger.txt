@@ -11,3 +11,4 @@ Recovery trigger: 2026-10-23 17:52 KST; both snapshots stale > 85m; require fres
 Recovery trigger: 2026-10-23 18:20 KST; latest files generated 17:55/17:56 KST, age > 15m; verify new 720-item snapshots and Actions state.
 Recovery trigger: 2026-10-23 19:45 KST; realtime/entry snapshots 19:04/19:06 KST (>15m), health check failed; require new snapshot and Actions verification.
 Recovery trigger: 2026-10-23 21:07 KST; snapshots generated 20:32/20:34 KST, >15m stale; require fresh 720-item 256-shard snapshots and Actions verification.
+Recovery trigger: 2026-10-23 22:29 KST; snapshots generated 21:09/21:11 KST (>15m), 720 items 256 shards; verify new run and fresh snapshots.
