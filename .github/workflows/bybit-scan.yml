@@ -13,10 +13,10 @@ on:
       - 'requirements.txt'
       - 'test_smc_smoke.py'
   schedule:
-    # 07:55 KST prewarm full-universe scan; 08:30 health-check/recovery; 08:50 briefing.
-    # Last verified 706-symbol run took 32m27s; allow 55m rather than 20m.
-    # GitHub scheduled workflows can be delayed: 08:30 automation verifies and remediates.
-    - cron: "55 22 * * *"
+    # 06:55 KST full-universe scan: allow >=115 minutes before the 08:50 KST briefing.
+    # GitHub schedule dispatch can be delayed; this advances the prior 07:55 KST trigger.
+    # Freshness and private-position validation gates below remain unchanged.
+    - cron: "55 21 * * *"
 
 permissions:
   contents: write
