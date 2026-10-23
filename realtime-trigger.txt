@@ -5,3 +5,4 @@ Recovery validation trigger: 2026-10-22 11:08 KST after health-check condition f
 
 Recovery trigger: 2026-10-22 16:54 KST; snapshots stale > 15m; automated health monitor.
 Recovery trigger: 2026-10-22 19:46 KST; 15m freshness failed, verify 717 items and 256 shards.
+Recovery trigger: 2026-10-23 15:49 KST; both snapshot files >15m stale, revalidate latest Realtime POI Snapshot.
