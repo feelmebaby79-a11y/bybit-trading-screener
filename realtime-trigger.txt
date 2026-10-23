@@ -8,3 +8,4 @@ Recovery trigger: 2026-10-22 19:46 KST; 15m freshness failed, verify 717 items a
 Recovery trigger: 2026-10-23 15:49 KST; both snapshot files >15m stale, revalidate latest Realtime POI Snapshot.
 Recovery trigger: 2026-10-23 16:22 KST; latest snapshot generated 15:51/15:53 KST, age > 15m; verify fresh 720-item snapshots.
 Recovery trigger: 2026-10-23 17:52 KST; both snapshots stale > 85m; require fresh 720-item 256-shard snapshot and Actions verification.
+Recovery trigger: 2026-10-23 18:20 KST; latest files generated 17:55/17:56 KST, age > 15m; verify new 720-item snapshots and Actions state.
