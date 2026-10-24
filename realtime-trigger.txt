@@ -35,3 +35,4 @@ Recovery trigger: 2026-10-24 21:05 KST; realtime/entry generated 20:09:05/20:10:
 
 Recovery trigger: 2026-10-24 22:51 KST; realtime/entry generated 21:07:04/21:08:57 KST (>100m stale), no newer Snapshot Actions run; require fresh 720-item 256-shard zero-error files and verify Actions completion.
 Recovery trigger: 2026-10-25 00:00:21 KST; snapshots at 23:37:39/23:39:42 KST are >15m stale; verify fresh 720-item, 256-shard zero-error files and Actions completed/success. Investigate schedule gap.
+Recovery trigger: 2026-10-25 01:50 KST; both snapshots generated 00:03/00:05 KST (>100m stale), last Snapshot Actions run at 00:00 KST. Verify fresh 720-item, 256-shard, zero-error files and Actions completion.
