@@ -38,3 +38,4 @@ Recovery trigger: 2026-10-25 00:00:21 KST; snapshots at 23:37:39/23:39:42 KST ar
 Recovery trigger: 2026-10-25 01:50 KST; both snapshots generated 00:03/00:05 KST (>100m stale), last Snapshot Actions run at 00:00 KST. Verify fresh 720-item, 256-shard, zero-error files and Actions completion.
 Recovery trigger: 2026-10-25 02:53:39 KST; realtime snapshot 02:36:11 KST exceeded 15m freshness, entry 02:38:13 KST near threshold; verify both 720-item, 256-shard zero-error files and Actions completion.
 Recovery trigger: 2026-10-25 04:07 KST; realtime/entry generated 03:09/03:11 KST, >15m stale; verify fresh 720-symbol 256-shard snapshots, Actions run, and watchlist gates.
+Recovery verification trigger: 2026-10-25 05:55 KST; scheduled Snapshot gap about 60m, health check failed at 05:46 KST due to 3459s-old snapshot; latest workflow_run succeeded at 05:50 KST. Recheck fresh 720-item 256-shard JSON files and Actions state; 5-minute schedule reliability remains unresolved.
