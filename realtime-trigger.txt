@@ -42,3 +42,4 @@ Recovery verification trigger: 2026-10-25 05:55 KST; scheduled Snapshot gap abou
 Recovery trigger: 2026-10-25 06:13 KST; latest realtime/entry snapshots 05:57:49/05:59:44 KST, scheduled refresh gap; verify new 720-item 256-shard snapshots and Actions completion.
 Recovery trigger: 2026-10-25 07:30 KST; realtime/entry snapshots generated 07:02:05/07:03:54 KST (>15m stale); request fresh 720-item, 256-shard, zero-error files and Actions status. Scheduled cadence remains unverified.
 Recovery trigger: 2026-10-25 08:41 KST; realtime/entry snapshots last generated 07:32:25/07:34:24 KST (>60m stale), watchlist expires 08:59:50 KST. Verify fresh 720-item 256-shard zero-error snapshots, Actions state, and watchlist refresh.
+Recovery verification trigger: 2026-10-25 09:19 KST; watchlist refreshed at 09:00:52, snapshots 09:05:51/09:07:25 KST, scheduled cadence gap approaching 15m; request new 724-symbol 256-shard zero-error snapshot and confirm Actions status.
