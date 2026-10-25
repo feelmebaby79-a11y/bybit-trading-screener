@@ -61,3 +61,5 @@ Recovery trigger: 2026-10-26 00:56 KST; both snapshots stale >2h40m, prior 23:14
 Recovery trigger: 2026-10-26 02:38 KST; latest realtime/entry generated 01:16:38/01:18:48 KST (>78m stale). Request new 724-symbol, 256-shard, zero-error snapshots; check Bybit API 403/rate-limit, 5m schedule gaps and Actions final state.
 
 Recovery trigger: 2026-10-26 03:36 KST; realtime/entry last generated 02:42:41/02:44:44 KST (>50m stale). Request fresh 724-symbol 256-shard zero-error snapshots; verify latest Actions, investigate 5m schedule gaps and Bybit API rate limits.
+
+Recovery trigger: 2026-10-26 04:36 KST; realtime/entry generated 03:39:02/03:41:11 KST (>55m stale), 724 items, 256 shards, zero recorded errors. Request fresh snapshots; verify new Actions run, investigate cron gaps and Bybit 403/rate-limit without weakening validation.
