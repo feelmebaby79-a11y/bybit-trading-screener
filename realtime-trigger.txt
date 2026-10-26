@@ -87,3 +87,4 @@ Recovery trigger: 2026-10-27 03:35 KST; realtime/entry generated 02:33:32/02:35:
 Recovery trigger: 2026-10-27 04:35 KST; realtime snapshot generated 04:19:04 KST (>15m stale), entry 04:20:55 KST approaching 15m. Request new 728-symbol, 256-shard, zero-error snapshots; verify matching watchlist, both files <=15m and Actions completion. 5-minute scheduled cadence still unverified; preserve validation gates.
 
 Recovery trigger: 2026-10-27 05:38 KST; realtime/entry snapshots generated 04:37/04:39 KST, >15m stale; verify fresh 728-item 256-shard zero-error snapshots, latest Actions completion and 5-minute scheduler gaps.
+Recovery trigger: 2026-10-27 06:48 KST; realtime/entry snapshots 05:40:36/05:42:50 KST (>65m stale), 728 items, 256 shards, error_count=0; require fresh files, Actions success, investigate missing 5m schedule runs; preserve integrity gates.
