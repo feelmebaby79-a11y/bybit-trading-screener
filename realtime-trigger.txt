@@ -67,3 +67,4 @@ Recovery trigger: 2026-10-26 05:29 KST; realtime/entry generated 05:02:23/05:04:
 
 Recovery trigger: 2026-10-26 06:15 KST; realtime/entry generated 05:32:21/05:34:29 KST (>39m stale), 724 items, 256 shards, zero recorded errors. Request fresh snapshots and Actions verification; investigate recurring schedule gaps and API 403/rate-limit without weakening gates.
 Recovery trigger: 2026-10-26 10:38 KST hourly monitor; latest snapshot >15m stale, health-check failed; require fresh 728-item, 256-shard realtime and entry files and Actions verification.
+Recovery trigger: 2026-10-26 11:20 KST; latest realtime/entry snapshots generated 10:41:19/10:42:38 KST (>35m stale). Request fresh 728-symbol, 256-shard, zero-error snapshots; verify new Actions run and files. Recurring 5m cron delays remain unresolved.
