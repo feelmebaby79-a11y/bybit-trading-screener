@@ -53,7 +53,25 @@ jobs:
                       try:
                           p=fetch_json(f'{BASE}/{kind}?shard={shard}&shards={SHARDS}')
                           errors=[{'symbol':x.get('symbol'),'error':x.get('error')} for x in p.get('items',[]) if x.get('error')]
-                          if p.get('ok') is not True or int(p.get('error_count') or 0)!=0:
+                          if p.get('ok') is not True:
+                              raise RuntimeError(f'worker not ok: {p.get("error")}')
+                          # Bybit officially delisted VELODROMEUSDT at 2026-10-27 09:00 UTC.
+                          # Only this exact post-delisting invalid-ticker error is a non-tradable
+                          # exclusion, never a successful price lookup. Preserve an audit trail.
+                          # https://announcements.bybit.global/en/article/delisting-of-velodromeusdt-perpetual-contract--artb784434995a7/
+                          delisted='VELODROMEUSDT'
+                          expected_error=f'Invalid ticker {delisted}'
+                          if (int(p.get('error_count') or 0)==1 and len(errors)==1
+                              and errors[0].get('symbol')==delisted
+                              and errors[0].get('error')==expected_error
+                              and datetime.now(timezone.utc)>=datetime(2026,10,27,9,tzinfo=timezone.utc)):
+                              p['items']=[x for x in (p.get('items') or []) if x.get('symbol')!=delisted]
+                              for key in ('arrivals','candidates'):
+                                  p[key]=[x for x in (p.get(key) or []) if x.get('symbol')!=delisted]
+                              p['error_count']=0
+                              p['excluded_delisted_symbols']=[delisted]
+                              print(f'{kind} shard={shard}: official delisting exclusion {delisted}',flush=True)
+                          elif int(p.get('error_count') or 0)!=0 or errors:
                               raise RuntimeError(f'ok={p.get("ok")} error_count={p.get("error_count")} worker_error={p.get("error")} sample_errors={errors[:5]}')
                           break
                       except Exception as exc:
@@ -65,7 +83,8 @@ jobs:
               if len(watch_times)!=1: raise RuntimeError(f'{kind}: inconsistent watchlist timestamps: {watch_times}')
               items=[x for p in parts for x in (p.get('items') or [])]
               key='arrivals' if kind=='realtime-watch' else 'candidates'
-              return {'ok':True,'generated_at':max(p.get('generated_at') for p in parts),'watchlist_updated_at':parts[0].get('watchlist_updated_at'),'execution_mode':'sharded_merge','shard_count':SHARDS,'error_count':0,key:[x for p in parts for x in (p.get(key) or [])],'items':items}
+              excluded=sorted(set(x for p in parts for x in p.get('excluded_delisted_symbols',[])))
+              return {'ok':True,'generated_at':max(p.get('generated_at') for p in parts),'watchlist_updated_at':parts[0].get('watchlist_updated_at'),'execution_mode':'sharded_merge','shard_count':SHARDS,'error_count':0,'excluded_delisted_symbols':excluded,'watchlist_item_count':len(items)+len(excluded),key:[x for p in parts for x in (p.get(key) or [])],'items':items}
           last_error=None
           for attempt in range(1,4):
               try:
@@ -76,6 +95,19 @@ jobs:
                   if age>600: raise RuntimeError(f'stale snapshot age={age:.0f}s')
                   current=fetch_watchlist()
                   if current.get('ok') is not True: raise RuntimeError('worker watchlist not ok')
+                  expected_symbols={x.get('symbol') for x in (current.get('items') or [])}
+                  if not expected_symbols: raise RuntimeError('empty canonical watchlist')
+                  if realtime['excluded_delisted_symbols']!=entry['excluded_delisted_symbols']:
+                      raise RuntimeError('realtime/entry delisted exclusions differ')
+                  for name,data in (('realtime',realtime),('entry',entry)):
+                      actual=[x.get('symbol') for x in data['items']]
+                      if len(actual)!=len(set(actual)): raise RuntimeError(f'{name}: duplicate symbols')
+                      if set(actual)|set(data['excluded_delisted_symbols'])!=expected_symbols:
+                          raise RuntimeError(f'{name}: processed+excluded symbols do not match canonical watchlist')
+                      if set(actual)&set(data['excluded_delisted_symbols']):
+                          raise RuntimeError(f'{name}: excluded symbol still in processed items')
+                      if data['watchlist_item_count']!=len(expected_symbols):
+                          raise RuntimeError(f'{name}: watchlist count mismatch')
                   current_updated=current.get('updated_at')
                   if not current_updated: raise RuntimeError('worker watchlist missing updated_at')
                   if current_updated!=expected: raise RuntimeError(f'watchlist changed during snapshot: worker={expected} current={current_updated}')
