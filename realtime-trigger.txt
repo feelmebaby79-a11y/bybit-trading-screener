@@ -108,3 +108,5 @@ Recovery trigger: 2026-10-28 03:35 KST; latest schedule Snapshot completed 03:16
 Recovery trigger: 2026-10-28 04:14 KST; realtime/entry generated 03:38:02/03:40:27 KST (>30m stale), 728 processed + 1 official delisting of 729, 256 shards, error_count=0; verify new Actions run and both files <=15m. 5m schedule gaps unresolved; preserve integrity gates.
 
 Recovery trigger: 2026-10-28 07:14 KST; realtime and entry snapshots stale >45m; require fresh 256-shard snapshots and Actions verification.
+
+Recovery trigger: 2026-10-28 08:43 KST; realtime/entry generated 07:23:31/07:24:54 KST (>78m stale); 728 items, 256 shards, zero stored errors, matching 07:19:07 KST watchlist. Request fresh Snapshot via push and independently verify Actions and both files <=15m. Keep integrity gates and recurring schedule investigation.
