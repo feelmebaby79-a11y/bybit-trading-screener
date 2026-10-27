@@ -141,15 +141,19 @@ jobs:
       - name: Verify fresh private positions before watchlist
         run: |
           python - <<'PY'
-          import json
+          import json, os
           from datetime import datetime, timezone, timedelta
           s=json.load(open('latest/scan.json',encoding='utf-8'))
-          cutoff=datetime.now(timezone(timedelta(hours=9))).replace(hour=6,minute=55,second=0,microsecond=0).astimezone(timezone.utc)
+          # Scheduled runs must be fresh since today's 06:55 KST cycle.
+          # Explicit recovery runs must be fresh since this run requested the scan.
+          scheduled_cutoff=datetime.now(timezone(timedelta(hours=9))).replace(hour=6,minute=55,second=0,microsecond=0).astimezone(timezone.utc)
+          requested_at=datetime.fromisoformat(os.environ['SCAN_REQUESTED_AT_UTC'].replace('Z','+00:00')).astimezone(timezone.utc)
+          cutoff=scheduled_cutoff if os.environ.get('GITHUB_EVENT_NAME')=='schedule' else requested_at
           def stamp(k):
               return datetime.fromisoformat(str(s[k]).replace('Z','+00:00')).astimezone(timezone.utc)
-          assert stamp('generated_at') >= cutoff, 'scan predates 06:55 KST'
+          assert stamp('generated_at') >= cutoff, f'scan predates required cutoff {cutoff.isoformat()}'
           assert s.get('position_fetch_ok') is True, 'Private API position fetch failed'
-          assert stamp('position_fetched_at') >= cutoff, 'positions predate 06:55 KST'
+          assert stamp('position_fetched_at') >= cutoff, f'positions predate required cutoff {cutoff.isoformat()}'
           assert isinstance(s.get('position_symbols'),list) and isinstance(s.get('positions'),dict), 'missing position payload'
           assert set(s['position_symbols']) == set(s['positions']), 'position payload mismatch'
           print('Fresh scan and private positions verified')
