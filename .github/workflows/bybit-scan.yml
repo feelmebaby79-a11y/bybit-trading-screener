@@ -370,3 +370,4 @@ jobs:
           artifact_name: github-pages-${{ github.run_attempt }}
 
 # Recovery trigger: 2026-10-27 08:52 KST; daily scan did not dispatch, canonical watchlist >24h old. Preserve all validation gates.
+# Recovery trigger: 2026-10-28 05:56 KST; canonical watchlist >24h old, snapshots >15m stale; rerun full scan without changing validation gates.
