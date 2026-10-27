@@ -89,6 +89,17 @@ jobs:
           for attempt in range(1,4):
               try:
                   realtime=merge('realtime-watch'); entry=merge('entry-watch')
+                  # One shard may not request a ticker in entry mode, so mirror the
+                  # independently detected official delisting across both outputs.
+                  excluded=set(realtime['excluded_delisted_symbols'])|set(entry['excluded_delisted_symbols'])
+                  if not excluded.issubset({'VELODROMEUSDT'}):
+                      raise RuntimeError(f'unexpected delisting exclusions: {excluded}')
+                  for data,key in ((realtime,'arrivals'),(entry,'candidates')):
+                      if excluded:
+                          data['items']=[x for x in data['items'] if x.get('symbol') not in excluded]
+                          data[key]=[x for x in data[key] if x.get('symbol') not in excluded]
+                          data['excluded_delisted_symbols']=sorted(excluded)
+                          data['watchlist_item_count']=len(data['items'])+len(excluded)
                   expected=realtime.get('watchlist_updated_at')
                   if entry.get('watchlist_updated_at')!=expected: raise RuntimeError('realtime/entry watchlist mismatch')
                   age=max((datetime.now(timezone.utc)-datetime.fromisoformat(x['generated_at'].replace('Z','+00:00')).astimezone(timezone.utc)).total_seconds() for x in (realtime,entry))
