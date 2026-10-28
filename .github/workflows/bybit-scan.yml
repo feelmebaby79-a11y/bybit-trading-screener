@@ -148,7 +148,7 @@ jobs:
           # Explicit recovery runs must be fresh since this run requested the scan.
           scheduled_cutoff=datetime.now(timezone(timedelta(hours=9))).replace(hour=6,minute=55,second=0,microsecond=0).astimezone(timezone.utc)
           requested_at=datetime.fromisoformat(os.environ['SCAN_REQUESTED_AT_UTC'].replace('Z','+00:00')).astimezone(timezone.utc)
-          cutoff=scheduled_cutoff if os.environ.get('GITHUB_EVENT_NAME')=='schedule' else requested_at
+          cutoff=scheduled_cutoff if (os.environ.get('GITHUB_EVENT_NAME')=='schedule' and os.environ.get('GITHUB_RUN_ATTEMPT','1')=='1') else requested_at
           def stamp(k):
               return datetime.fromisoformat(str(s[k]).replace('Z','+00:00')).astimezone(timezone.utc)
           assert stamp('generated_at') >= cutoff, f'scan predates required cutoff {cutoff.isoformat()}'
