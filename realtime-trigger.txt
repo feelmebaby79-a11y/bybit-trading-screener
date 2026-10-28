@@ -113,3 +113,5 @@ Recovery trigger: 2026-10-28 08:43 KST; realtime/entry generated 07:23:31/07:24:
 Recovery trigger: 2026-10-28 17:23 KST; realtime/entry last generated 16:54:14/16:56:10 KST (>15m stale); request new 728-item 256-shard zero-error snapshots and verify Actions success and file freshness. Preserve integrity gates; 5m cron gap unresolved.
 Recovery trigger: 2026-10-28 18:58 KST; realtime/entry snapshots 17:32:09/17:38:12 KST are >15m stale; verify fresh 728-symbol, 256-shard, zero-error snapshots and Actions completion; preserve validation gates.
 Recovery trigger 2026-10-28T14:35:12.591Z: 2026-10-28 23:35 KST; realtime/entry snapshot freshness exceeded 15m after latest scheduled run, request fresh 728-item 256-shard zero-error snapshots, matching watchlist and verify Actions success. Preserve validation gates; investigate 5m cron gaps.
+
+Recovery trigger: 2026-10-29 06:23 KST; realtime generated 06:07:47 KST (>15m stale), entry 06:11:43 KST; require fresh 728-symbol 256-shard zero-error snapshots, matching watchlist, and Actions success verification. Keep validation gates; 5m cron gap unresolved.
