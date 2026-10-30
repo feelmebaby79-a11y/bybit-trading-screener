@@ -19,6 +19,7 @@ jobs:
         run: |
           python - <<'PY'
           import concurrent.futures,json,os,urllib.request,time
+          from datetime import datetime,timezone
           base="https://bybit-trading-screener.feelmebaby79.workers.dev"
           key=os.environ["WORKER_ACCESS_KEY"]
           def run(task):
@@ -30,8 +31,34 @@ jobs:
               except Exception as e: return shard,{"ok":False,"error":str(e)}
           with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
               results=dict(pool.map(run,[(mode,shard) for mode in ("poi","entry") for shard in range(256)]))
-          failures={k:v for k,v in results.items() if not v.get("ok") or v.get("error_count")}
-          print("shards",len(results),"failures",len(failures),"poi_arrivals",sum(v.get("arrivals",0) for v in results.values()),"entry_candidates",sum(v.get("candidates",0) for v in results.values()),flush=True)
+          # Official Bybit perpetual delistings, verified from Bybit announcements.
+          # These are non-tradable exclusions, never successful price lookups.
+          official_delistings={
+              "VELODROMEUSDT":datetime(2026,10,27,9,tzinfo=timezone.utc),
+              "MITOUSDT":datetime(2026,10,30,9,tzinfo=timezone.utc),
+              "EPICUSDT":datetime(2026,10,30,9,tzinfo=timezone.utc),
+              "PTBUSDT":datetime(2026,10,30,9,tzinfo=timezone.utc),
+          }
+          def official_exclusions(k,v):
+              try:
+                  mode,shard=k.split(":")
+                  body=json.loads(v.get("body") or "{}")
+                  errors=body.get("errors") or []
+                  if body.get("mode")!=mode or body.get("shard")!=int(shard): return []
+                  if body.get("ok") is not False or not errors or int(body.get("error_count",-1))!=len(errors): return []
+                  if not all(e.get("symbol") in official_delistings
+                      and e.get("error")==f"Invalid ticker {e.get('symbol')}"
+                      and datetime.now(timezone.utc)>=official_delistings[e.get("symbol")] for e in errors): return []
+                  return [e["symbol"] for e in errors]
+              except (ValueError,TypeError,AttributeError,KeyError): return []
+          excluded={k:official_exclusions(k,v) for k,v in results.items() if not v.get("ok") or v.get("error_count")}
+          excluded={k:v for k,v in excluded.items() if v}
+          failures={k:v for k,v in results.items() if (not v.get("ok") or v.get("error_count")) and k not in excluded}
+          print("shards",len(results),"failures",len(failures),"official_delisted_shards",len(excluded),
+                "official_delisted_symbols",sorted(set(s for syms in excluded.values() for s in syms)),
+                "poi_arrivals",sum(v.get("arrivals",0) for v in results.values()),
+                "entry_candidates",sum(v.get("candidates",0) for v in results.values()),flush=True)
+          for k,syms in excluded.items(): print("OFFICIAL_DELISTING_EXCLUSION",k,syms,flush=True)
           for k,v in failures.items(): print("FAIL",k,json.dumps(v,ensure_ascii=False)[:1000],flush=True)
           if failures: raise SystemExit(1)
           PY
