@@ -38,6 +38,17 @@ jobs:
           import json, time, urllib.request
           from datetime import datetime, timezone
           BASE='https://bybit-trading-screener.feelmebaby79.workers.dev'; SHARDS=256
+          # Official Bybit perpetual-contract delistings; UTC effective times.
+          # VELODROME: https://announcements.bybit.global/en/article/delisting-of-velodromeusdt-perpetual-contract--artb784434995a7/
+          # MITO: https://announcements.bybit.com/en/article/delisting-of-mitousdt-perpetual-contract--art87127dd56942/
+          # EPIC: https://announcements.bybit.com/en/article/delisting-of-epicusdt-perpetual-contract--artfddc9a184576/
+          # PTB: https://announcements.bybit.com/en/article/delisting-of-ptbusdt-perpetual-contract--art471fb03ab350/
+          official_delistings={
+              'VELODROMEUSDT':datetime(2026,10,27,9,tzinfo=timezone.utc),
+              'MITOUSDT':datetime(2026,10,30,9,tzinfo=timezone.utc),
+              'EPICUSDT':datetime(2026,10,30,9,tzinfo=timezone.utc),
+              'PTBUSDT':datetime(2026,10,30,9,tzinfo=timezone.utc),
+          }
           def fetch_json(url):
               req=urllib.request.Request(url,headers={'Accept':'application/json','User-Agent':'realtime-shard-snapshot'})
               with urllib.request.urlopen(req,timeout=60) as r: return json.loads(r.read().decode('utf-8'))
@@ -55,22 +66,22 @@ jobs:
                           errors=[{'symbol':x.get('symbol'),'error':x.get('error')} for x in p.get('items',[]) if x.get('error')]
                           if p.get('ok') is not True:
                               raise RuntimeError(f'worker not ok: {p.get("error")}')
-                          # Bybit officially delisted VELODROMEUSDT at 2026-10-27 09:00 UTC.
-                          # Only this exact post-delisting invalid-ticker error is a non-tradable
-                          # exclusion, never a successful price lookup. Preserve an audit trail.
-                          # https://announcements.bybit.global/en/article/delisting-of-velodromeusdt-perpetual-contract--artb784434995a7/
-                          delisted='VELODROMEUSDT'
-                          expected_error=f'Invalid ticker {delisted}'
-                          if (int(p.get('error_count') or 0)==1 and len(errors)==1
-                              and errors[0].get('symbol')==delisted
-                              and errors[0].get('error')==expected_error
-                              and datetime.now(timezone.utc)>=datetime(2026,10,27,9,tzinfo=timezone.utc)):
-                              p['items']=[x for x in (p.get('items') or []) if x.get('symbol')!=delisted]
+                          # Exclude only exact invalid-ticker errors for officially delisted
+                          # contracts after the effective time; preserve audit counts.
+                          valid_exclusions={
+                              e.get('symbol') for e in errors
+                              if e.get('symbol') in official_delistings
+                              and e.get('error')==f"Invalid ticker {e.get('symbol')}"
+                              and datetime.now(timezone.utc)>=official_delistings[e.get('symbol')]
+                          }
+                          if (errors and len(valid_exclusions)==len(errors)
+                              and int(p.get('error_count') or 0)==len(errors)):
+                              p['items']=[x for x in (p.get('items') or []) if x.get('symbol') not in valid_exclusions]
                               for key in ('arrivals','candidates'):
-                                  p[key]=[x for x in (p.get(key) or []) if x.get('symbol')!=delisted]
+                                  p[key]=[x for x in (p.get(key) or []) if x.get('symbol') not in valid_exclusions]
                               p['error_count']=0
-                              p['excluded_delisted_symbols']=[delisted]
-                              print(f'{kind} shard={shard}: official delisting exclusion {delisted}',flush=True)
+                              p['excluded_delisted_symbols']=sorted(set(p.get('excluded_delisted_symbols') or [])|valid_exclusions)
+                              print(f'{kind} shard={shard}: official delisting exclusions {sorted(valid_exclusions)}',flush=True)
                           elif int(p.get('error_count') or 0)!=0 or errors:
                               raise RuntimeError(f'ok={p.get("ok")} error_count={p.get("error_count")} worker_error={p.get("error")} sample_errors={errors[:5]}')
                           break
@@ -92,7 +103,7 @@ jobs:
                   # One shard may not request a ticker in entry mode, so mirror the
                   # independently detected official delisting across both outputs.
                   excluded=set(realtime['excluded_delisted_symbols'])|set(entry['excluded_delisted_symbols'])
-                  if not excluded.issubset({'VELODROMEUSDT'}):
+                  if not excluded.issubset(set(official_delistings)):
                       raise RuntimeError(f'unexpected delisting exclusions: {excluded}')
                   for data,key in ((realtime,'arrivals'),(entry,'candidates')):
                       if excluded:
