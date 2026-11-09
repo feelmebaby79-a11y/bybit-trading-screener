@@ -119,3 +119,5 @@ Recovery trigger 2026-10-30: validate official MITOUSDT/EPICUSDT/PTBUSDT delisti
 Recovery trigger 2026-11-10 05:37 KST: Snapshot files >3h stale; retry of failed run blocked HTTP 403. Trigger fresh workflow via existing push path; verify 256 shards, 751 symbols, watchlist consistency, and 15m freshness. Do not relax validation gates.
 
 Recovery trigger: 2026-11-10 06:28 KST; realtime/entry generated 05:43:10/05:45:30 KST (>40m stale); latest scheduled Snapshot success 05:45 KST, subsequent shard dispatch failed 05:59 KST. Verify new 751-item, 256-shard, zero-error files and investigate recurring schedule/dispatch failure.
+
+Recovery trigger: 2026-11-10 07:11 KST; realtime/entry generated 06:31:38/06:33:37 KST (>35m stale), 751 symbols, 256 shards, zero errors. Request new Snapshot via existing push trigger; verify completion and freshness. Preserve validation gates.
