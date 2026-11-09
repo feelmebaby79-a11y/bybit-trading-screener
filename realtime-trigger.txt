@@ -116,3 +116,4 @@ Recovery trigger 2026-10-28T14:35:12.591Z: 2026-10-28 23:35 KST; realtime/entry 
 
 Recovery trigger: 2026-10-29 06:23 KST; realtime generated 06:07:47 KST (>15m stale), entry 06:11:43 KST; require fresh 728-symbol 256-shard zero-error snapshots, matching watchlist, and Actions success verification. Keep validation gates; 5m cron gap unresolved.
 Recovery trigger 2026-10-30: validate official MITOUSDT/EPICUSDT/PTBUSDT delisting exclusions and fresh realtime/entry snapshots after workflow patch.
+Recovery trigger 2026-11-10 05:37 KST: Snapshot files >3h stale; retry of failed run blocked HTTP 403. Trigger fresh workflow via existing push path; verify 256 shards, 751 symbols, watchlist consistency, and 15m freshness. Do not relax validation gates.
