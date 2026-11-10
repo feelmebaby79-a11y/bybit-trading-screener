@@ -127,3 +127,5 @@ Recovery trigger: 2026-11-10 09:30 KST; realtime/entry generated 08:47:43/08:49:
 Recovery trigger: 2026-11-10 13:35 KST; realtime/entry generated 13:03:12/13:04:40 KST (>30m stale); watchlist refreshed 12:57:19 KST. Request new 751-symbol 256-shard zero-error Snapshot; preserve validation gates and verify run and JSON freshness.
 
 Recovery trigger: 2026-11-10 14:28 KST; realtime/entry generated 13:37:58/13:39:55 KST (>48m stale), watchlist 12:57:19 KST, 751 symbols, 256 shards, zero errors. Request fresh snapshot via established push path; preserve all validation gates.
+
+Recovery trigger: 2026-11-10 15:22 KST; realtime 14:32:46 and entry 14:34:55 stale >15m; validate 751 symbols, 256 shards, zero errors and new Actions run. Preserve freshness gates.
