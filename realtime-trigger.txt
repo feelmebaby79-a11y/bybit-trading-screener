@@ -134,3 +134,4 @@ Recovery trigger: 2026-11-10 17:27 KST; snapshots 16:27:37/16:29:53 KST stale >5
 Recovery trigger: 2026-11-10 19:17 KST; realtime/entry 18:48:25/18:50:46 KST stale >15m; require fresh 751-item 256-shard zero-error snapshots and verify Actions status. 5-minute schedule gap unresolved.
 
 Recovery trigger: 2026-11-10 21:29 KST; realtime/entry generated 20:03:00/20:05:24 KST (>15m stale); verify 751 symbols, 256 shards, zero errors, new Actions run and 5m schedule continuity.
+Recovery trigger: 2026-11-10 22:30 KST; realtime/entry snapshots generated 21:32:26/21:35:07 KST (>55m stale); verify 751-symbol 256-shard zero-error snapshots and Actions completion; 5-minute cron gaps unresolved.
