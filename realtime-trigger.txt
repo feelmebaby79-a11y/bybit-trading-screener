@@ -131,3 +131,4 @@ Recovery trigger: 2026-11-10 14:28 KST; realtime/entry generated 13:37:58/13:39:
 Recovery trigger: 2026-11-10 15:22 KST; realtime 14:32:46 and entry 14:34:55 stale >15m; validate 751 symbols, 256 shards, zero errors and new Actions run. Preserve freshness gates.
 Recovery trigger: 2026-11-10 16:24 KST; realtime/entry generated 15:25:20/15:27:33 KST (>55m stale), 751 symbols, 256 shards, error_count=0. Verify new run and both JSON files; preserve safety gates. Recurring 5m schedule gap unresolved.
 Recovery trigger: 2026-11-10 17:27 KST; snapshots 16:27:37/16:29:53 KST stale >57m, 751 symbols, 256 shards, zero errors. Verify new Actions run and fresh files; scheduled cadence still missing.
+Recovery trigger: 2026-11-10 19:17 KST; realtime/entry 18:48:25/18:50:46 KST stale >15m; require fresh 751-item 256-shard zero-error snapshots and verify Actions status. 5-minute schedule gap unresolved.
