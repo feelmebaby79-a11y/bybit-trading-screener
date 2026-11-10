@@ -143,3 +143,5 @@ Recovery trigger: 2026-11-11 00:26 KST; realtime/entry generated 23:41:50/23:44:
 Recovery trigger: 2026-11-11 01:37 KST; realtime/entry generated 00:29:15/00:32:25 KST, both >15m stale; 751 symbols, 256 shards, zero errors. Verify new run and files; 5m cron gap persists.
 
 Recovery trigger: 2026-11-11 02:31 KST; realtime 01:40:11 / entry 01:42:42 KST stale >45m, 751 symbols, 256 shards, zero errors; verify Actions completion and both JSON freshness. Recurring schedule gap unresolved.
+
+Recovery trigger: 2026-11-11 03:30 KST; realtime 02:50:16 / entry 02:52:52 KST stale >35m, 751 symbols, 256 shards, zero errors. Verify new Snapshot Actions run and files; 5m cron gap persists.
