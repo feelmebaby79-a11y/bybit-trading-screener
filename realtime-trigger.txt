@@ -174,3 +174,5 @@ Recovery trigger: 2026-11-12 02:52 KST; realtime/entry generated 02:32:22/02:34:
 Recovery trigger: 2026-11-12 03:24 KST; realtime/entry generated 02:54:34/02:56:25 KST, both >15m stale. Request validated 751-symbol, 256-shard, zero-error snapshots; preserve safety gates and investigate 5-minute schedule gaps.
 
 Recovery trigger: 2026-11-12 04:31 KST; scheduled snapshot stale ~50m, require 751-symbol 256-shard zero-error snapshots and verify new Actions execution; preserve integrity gates.
+
+Recovery trigger: 2026-11-12 05:36 KST; realtime/entry last generated 04:33:32/04:35:37 KST (>60m stale), 751 symbols, 256 shards, zero errors. Request validated snapshot refresh, verify new Actions run and both files <=15m. Investigate recurring cron gaps and failed Market shard dispatch; preserve all gates.
