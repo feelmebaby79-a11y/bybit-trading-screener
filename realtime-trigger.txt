@@ -157,3 +157,5 @@ Recovery trigger: 2026-11-11 12:56 KST; realtime/entry generated 12:12:28/12:14:
 Recovery trigger: 2026-11-11 13:25 KST; realtime/entry generated 13:03:00/13:04:50 KST, both >15m stale. Request validated 751-item 256-shard zero-error snapshots, verify Actions and files; 5m scheduled cadence remains unreliable. Preserve all validation gates.
 
 Recovery trigger: 2026-11-11 14:35 KST; realtime/entry generated 13:27:28/13:29:18 KST (>65m stale), 751 items, 256 shards, zero errors, matched watchlist; verify new Actions run and both files within 15m. Preserve all validation gates; scheduled cadence unresolved.
+
+Recovery trigger: 2026-11-11 15:47 KST; realtime/entry snapshots 15:13:34/15:15:13 KST exceed 15m, Health Check failed at 15:11; request fresh 751-symbol 256-shard zero-error snapshots. Preserve validation; investigate 5m cron gaps.
