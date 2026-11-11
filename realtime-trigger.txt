@@ -151,3 +151,4 @@ Recovery trigger: 2026-11-11 05:55 KST; snapshots 04:12/04:14 KST stale >100m; v
 Recovery trigger: 2026-11-11 06:55 KST; realtime 05:57:32 and entry 05:59:50 KST are >15m stale; verify 751 items, 256 shards, errors=0 and subsequent scheduled cadence.
 Recovery trigger: 2026-11-11 09:31 KST; realtime/entry 08:46/08:48 KST stale >40m, last scheduled snapshot succeeded 08:48:51 KST; require fresh 751-item 256-shard zero-error files, Actions verification; recurring schedule gaps unresolved.
 Recovery trigger: 2026-11-11 10:12 KST; realtime/entry snapshots 09:33/09:35 KST exceed 15m freshness; request 751-symbol 256-shard zero-error snapshots and verify Actions. Scheduled cadence unresolved.
+Recovery trigger: 2026-11-11 11:49 KST; realtime/entry generated 10:40:45/10:42:16 KST, both >15m stale. Require fresh 751-item 256-shard zero-error snapshots and verify Actions run. 5-minute cron continuity remains unresolved.
