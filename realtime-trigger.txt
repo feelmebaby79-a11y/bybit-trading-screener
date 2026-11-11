@@ -166,3 +166,4 @@ Recovery trigger: 2026-11-11 19:35 KST; realtime 18:17:58 and entry 18:19:45 KST
 Recovery trigger: 2026-11-11 20:20 KST; scheduled run 43008690895 completed 20:07:17, realtime generated 20:05:20 (>15m at check), entry 20:07:13; refresh both and verify 751 symbols, 256 shards, zero errors; cron continuity unresolved.
 Recovery trigger: 2026-11-11 21:46 KST; realtime/entry generated 20:23:13/20:25:08 KST, both >80m stale; require 751-item 256-shard zero-error refresh and verify new Actions run and file timestamps. Preserve validation gates; scheduled cadence unresolved.
 Recovery trigger: 2026-11-11 22:53 KST; realtime/entry generated 21:49:08/21:51:10 KST (>60m stale), 751 symbols, 256 shards, zero errors; request fresh snapshots and verify Actions run and files. Preserve integrity gates; 5m cron continuity unresolved.
+Recovery trigger: 2026-11-11 23:23 KST; realtime 22:56:34 and entry 22:59:00 stale >15m; verify scheduled cadence and both 751-symbol snapshots.
